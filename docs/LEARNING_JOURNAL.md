@@ -137,7 +137,7 @@ Uncovered risks: Firefox/Safari were not run; this is not exhaustive accessibili
 
 **Date and Jira ticket**
 
-2026-11-06 (Asia/Colombo). [TRD-15](https://minuraranaweera.atlassian.net/browse/TRD-15), branch `feature/TRD-15-warehouse-inventory`, based on merged TRD-13 (`7d7b048`). Commits: backend `baafab3`, frontend/tests `91ef466`, documentation `191d610`, browser diagnostics `6ee82be`. [PR #3](https://github.com/minuraDinupriya/tradesphere/pull/3) is open and unmerged. Implementation and verification are recorded below; developer review/merge and demonstrated understanding remain separate outstanding states. The earlier mentoring-policy draft remains in its named stash, separate from this deliverable.
+2026-11-06 (Asia/Colombo). [TRD-15](https://minuraranaweera.atlassian.net/browse/TRD-15), branch `feature/TRD-15-warehouse-inventory`, based on merged TRD-13 (`7d7b048`). Commits: backend `baafab3`, frontend/tests `91ef466`, documentation `191d610`, browser diagnostics `6ee82be`. Update during TRD-16: [PR #3](https://github.com/minuraDinupriya/tradesphere/pull/3) is merged on main as `3f49db4`; earlier review-pending notes describe its original report. Demonstrated developer understanding remains unverified. The earlier mentoring-policy draft remains in its named stash, separate from this deliverable.
 
 **What We Built**
 
@@ -191,3 +191,56 @@ Hosted verification: [initial run 42227320592](https://github.com/minuraDinupriy
 
 1. Trace the receipt's request ID from React through the controller/service to both SQL statements. Explain in your own words which mechanism prevents partial writes, lost increments, and duplicate deliveries.
 2. On a disposable exercise branch, predict and test what happens when two receipts of 7 and 11 units arrive together, then when both use one request ID with different quantities. Use database assertions, not only HTTP status codes. This is suggested practice, not work already completed by the developer.
+
+## 2026-11-06 — TRD-16: Customer and sales pricing foundation
+
+**Date and Jira ticket**
+
+2026-11-06 (Asia/Colombo). [TRD-16](https://minuraranaweera.atlassian.net/browse/TRD-16), branch `feature/TRD-16-customer-sales-pricing`, from `3f49db4`. Commits: backend `d53bbc1`, frontend/tests `b40d79e`. The actual Jira ticket and supplied design guidelines were read first. The developer approved the three scope choices recorded in [decision 0004](decisions/0004-customers-and-sales-pricing.md). PR/hosted results are recorded when verified; merge and demonstrated understanding remain separate states.
+
+**What We Built**
+
+Customer create/view/edit/search/status/pagination across PostgreSQL, Spring Boot, and React; optional contact fields and optimistic edit conflicts. Added one optional initial LKR selling price per product, exact decimal values, dedicated versioned editing, and independent customer/price write permissions. Existing users default to no new write access. Orders, taxes, payments, invoices, credit, multi-currency, deletion, and price history were not implemented. See [API](api/CUSTOMERS_AND_PRICING.md).
+
+**Concepts I Should Understand**
+
+- **Exact money:** Java `BigDecimal` stores decimal digits without binary floating-point approximation. Construct it from text; converting through double first can already lose information. PostgreSQL `numeric(14,2)` stores 12 whole digits and two fractional digits.
+- **Validation before storage:** a two-decimal database column can round direct SQL input. The API instead rejects extra decimals and non-string JSON before persistence; the UI retains decimal strings too.
+- **Unset versus zero:** null means nobody set a selling price; `"0.00"` is an explicitly set free price. Treating both as zero hides missing business data.
+- **Independent edit versions and permissions:** catalog metadata and selling price have different writers and versions. One cannot overwrite the other by submitting a stale/general product form. The earlier entries explain tenant predicates, transactions, CSRF, and optimistic updates in detail.
+
+**Real-World Analogy**
+
+A hardware store keeps product descriptions in one section of its ledger and price labels in another. A clerk allowed to correct a bolt's description does not automatically get permission to change its price. Money is recorded as exact rupees and cents, not an approximate ruler measurement; a missing price label is different from one explicitly marked free.
+
+**How It Works Internally**
+
+1. [CustomerController](../backend/src/main/java/com/tradesphere/ordering/CustomerController.java) derives the organization from the authenticated principal. [CustomerService](../backend/src/main/java/com/tradesphere/ordering/CustomerService.java) normalizes/coordinates changes; [CustomerRepository](../backend/src/main/java/com/tradesphere/ordering/CustomerRepository.java) binds organization-scoped SQL and version checks.
+2. [SellingPricePage](../frontend/src/features/catalog/SellingPricePage.tsx) keeps typed money as text; [sellingPriceApi](../frontend/src/features/catalog/sellingPriceApi.ts) sends that string and the retrieved version, and formats strings without `Number` conversion.
+3. [SellingPriceController](../backend/src/main/java/com/tradesphere/catalog/SellingPriceController.java) validates the request; its scoped [deserializer](../backend/src/main/java/com/tradesphere/catalog/SellingPriceStringDeserializer.java) rejects JSON numbers. [SellingPriceAmount](../backend/src/main/java/com/tradesphere/catalog/SellingPriceAmount.java) constructs exact `BigDecimal` and forbids rounding.
+4. [SellingPriceService](../backend/src/main/java/com/tradesphere/catalog/SellingPriceService.java) and [repository](../backend/src/main/java/com/tradesphere/catalog/SellingPriceRepository.java) atomically compare/increment `price_version`. [V5](../backend/src/main/resources/db/migration/V5__create_customers_and_selling_prices.sql) adds price columns, customers, integrity checks, and default-false sales permissions.
+
+**Engineering Decisions**
+
+Keep customers in Ordering and prices in Catalog rather than add services or new infrastructure. Store a nullable price on the existing product, with a separate version, rather than invent price lists/history. Reuse the existing native forms and move the abortable read hook into shared UI code so Customer does not import Inventory internals. [Decision 0004](decisions/0004-customers-and-sales-pricing.md) covers alternatives, numeric bounds, and design limitations. A future order must deliberately snapshot its price; this ticket does not define that behavior.
+
+**Problems and Debugging**
+
+No failing functional test or production incident was encountered in this slice. Review identified two gaps before final verification: an account label understood only old permissions, and default scalar coercion could weaken the decimal-string contract. Updated the label, added scoped string deserialization, and verified separate customer-only/price-only authorization plus numeric-token rejection. Inspected the installed Jackson API with `javap` before writing its extension. Do not describe these preventative improvements as observed customer incidents or claim the whole feature used TDD.
+
+Executed locally: `.\mvnw.cmd -B -ntp verify` passed **11 unit + 32 PostgreSQL/API integration tests**, none skipped. `npm run lint`, `npm run test` (**33 component tests**), and `npm run build` passed. `npm run test:e2e` passed **4 real Edge workflows**, including existing catalog/inventory regressions and customer/pricing persistence. Screenshots were inspected at desktop and 390px customer layout. Exact commands, environments, and later hosted evidence belong in [COMMAND_LOG.md](COMMAND_LOG.md).
+
+Senior self-review examined tenant predicates, default-deny security routes, permission independence, catalog price tampering, monetary coercion/precision, edit races, migration compatibility, escaped search, React output escaping, and scope. No external approval or exhaustive security certification is claimed. Limits: no immediate session revocation, price history/clearing, order snapshots, exhaustive accessibility, Firefox/Safari, load tests, or production deployment. Customer-specific Figma fidelity remains unverified.
+
+**Interview Questions**
+
+1. **Why use `new BigDecimal("0.10")` rather than double for money?** Decimal text preserves the intended digits; binary floating-point can approximate the value before BigDecimal receives it.
+2. **Does `numeric(14,2)` alone enforce rejection of three decimals?** No; PostgreSQL can round input to that scale. Validate/reject excess decimals before writing it when rounding is not allowed.
+3. **Why use strings for money in JSON/React?** JavaScript numbers use binary floating point. Strings preserve exact decimal digits until validated decimal arithmetic occurs on the backend.
+4. **Why separate price and catalog versions?** They represent independently authorized edits; comparing only the price version protects competing price edits without letting catalog updates write the price.
+5. **How do you distinguish missing pricing from a free item?** Null means unpriced, whereas an explicitly stored zero is a price. Future ordering must decide how to handle unpriced products.
+
+**What I Should Practise**
+
+1. Trace `"1234.56"` from the React input through JSON, deserialization, `BigDecimal`, and JDBC. Explain where precision could be lost if a number conversion were inserted.
+2. Predict two simultaneous edits using price version 0, then explain the repository SQL and integration assertion proving one winner. These are proposed learner exercises; understanding is not yet demonstrated.
