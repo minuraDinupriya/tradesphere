@@ -1,0 +1,63 @@
+name: Foundation CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend and PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: Configure disposable database
+        run: |
+          echo "POSTGRES_DB=tradesphere_ci" >> "$GITHUB_ENV"
+          echo "POSTGRES_USER=tradesphere_ci" >> "$GITHUB_ENV"
+          password=$(openssl rand -hex 24)
+          echo "::add-mask::$password"
+          echo "POSTGRES_PASSWORD=$password" >> "$GITHUB_ENV"
+      - name: Validate Compose and start PostgreSQL
+        run: |
+          docker compose config --quiet
+          docker compose up -d --wait --wait-timeout 90
+      - name: Build and run backend tests
+        working-directory: backend
+        run: ./mvnw -B -ntp verify
+      - name: Database diagnostics on failure
+        if: failure()
+        run: docker compose logs postgres
+      - name: Stop disposable database
+        if: always()
+        run: docker compose down --volumes
+
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build

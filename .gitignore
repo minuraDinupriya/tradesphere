@@ -1,0 +1,24 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Build output and dependencies
+**/target/
+**/node_modules/
+**/dist/
+**/coverage/
+*.tsbuildinfo
+*.log
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Agent verification output (not project artifacts)
+.local/
