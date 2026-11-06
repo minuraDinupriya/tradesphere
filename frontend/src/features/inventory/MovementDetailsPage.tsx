@@ -3,12 +3,12 @@ import { Link, useParams } from 'react-router-dom'
 import { request } from '../../shared/api/http'
 import { ErrorState, LoadingState } from '../../shared/components/Feedback'
 import type { StockMovement } from './inventoryApi'
-import { useInventoryData } from './useInventoryData'
+import { useRemoteData } from '../../shared/hooks/useRemoteData'
 
 export function MovementDetailsPage() {
   const { id } = useParams()
   const load = useCallback((signal: AbortSignal) => request<StockMovement>(`/inventory/movements/${encodeURIComponent(id!)}`, { signal }), [id])
-  const { data, loading, error, reload } = useInventoryData(load)
+  const { data, loading, error, reload } = useRemoteData(load)
   if (loading) return <LoadingState label="Loading stock movement…" />
   if (error) return <ErrorState message={error} onRetry={reload} />
   if (!data) return null

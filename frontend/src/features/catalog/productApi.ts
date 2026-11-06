@@ -3,7 +3,7 @@ import { request } from '../../shared/api/http'
 export interface ProductValues {
   sku: string; name: string; description: string | null; category: string; unitOfMeasure: string; active: boolean
 }
-export interface Product extends ProductValues { id: string; version: number; createdAt: string; updatedAt: string }
+export interface Product extends ProductValues { id: string; version: number; createdAt: string; updatedAt: string; sellingPrice: string | null }
 export interface ProductPage { items: Product[]; totalElements: number; page: number; size: number; totalPages: number }
 export interface ProductFilters { q: string; category: string; active: string; page: number; size: number }
 

@@ -1,6 +1,9 @@
 import { createContext, useContext } from 'react'
 
-export interface SessionUser { username: string; organizationName: string; canWriteCatalog: boolean; canWriteInventory: boolean }
+export interface SessionUser {
+  username: string; organizationName: string; canWriteCatalog: boolean; canWriteInventory: boolean
+  canWriteCustomers: boolean; canWritePrices: boolean
+}
 export interface AuthState {
   user: SessionUser | null
   loading: boolean

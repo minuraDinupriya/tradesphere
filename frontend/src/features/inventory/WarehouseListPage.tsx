@@ -5,7 +5,7 @@ import { ErrorState, LoadingState } from '../../shared/components/Feedback'
 import { useAuth } from '../identity/useAuth'
 import { inventoryApi } from './inventoryApi'
 import { InventoryPagination } from './InventoryPagination'
-import { useInventoryData } from './useInventoryData'
+import { useRemoteData } from '../../shared/hooks/useRemoteData'
 
 export function WarehouseListPage() {
   const { user } = useAuth()
@@ -13,7 +13,7 @@ export function WarehouseListPage() {
   const [q, setQ] = useState(''); const [active, setActive] = useState('')
   const [filters, setFilters] = useState({ q: '', active: undefined as boolean | undefined, page: 0, size: 20 })
   const load = useCallback((signal: AbortSignal) => inventoryApi.warehouses(filters, signal), [filters])
-  const result = useInventoryData(load)
+  const result = useRemoteData(load)
   function apply(next: typeof filters) { result.begin(); setFilters(next) }
   function search(event: FormEvent) { event.preventDefault(); apply({ ...filters, q: q.trim(), active: active === '' ? undefined : active === 'true', page: 0 }) }
   const notice = (location.state as { notice?: string } | null)?.notice

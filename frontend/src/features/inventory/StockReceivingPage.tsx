@@ -8,7 +8,7 @@ import { productApi } from '../catalog/productApi'
 import { useAuth } from '../identity/useAuth'
 import { inventoryApi } from './inventoryApi'
 import type { StockReceiptInput } from './inventoryApi'
-import { useInventoryData } from './useInventoryData'
+import { useRemoteData } from '../../shared/hooks/useRemoteData'
 
 export function StockReceivingPage() {
   const { user, refresh } = useAuth()
@@ -31,7 +31,7 @@ export function StockReceivingPage() {
     const [warehouses, products] = await Promise.all([inventoryApi.warehouses({ active: true, size: 100 }, signal), productApi.list({ q: query, category: '', active: 'true', page: 0, size: 20 }, signal)])
     return { warehouses: warehouses.items, products: products.items }
   }, [query])
-  const result = useInventoryData(load)
+  const result = useRemoteData(load)
   useEffect(() => { if (error) errorRef.current?.focus() }, [error])
   if (!user?.canWriteInventory) return <ErrorState message="Inventory write permission is required to receive stock." />
   const locked = pending || submitted !== null
