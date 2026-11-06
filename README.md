@@ -6,6 +6,8 @@ The system will manage products, warehouses, stock receipts, inventory availabil
 
 ## Current status
 
+TRD-19 adds the organization-scoped operational dashboard and local same-origin container preparation. See the [dashboard API](docs/api/DASHBOARD.md), [deployment proposal and recovery guide](docs/DEPLOYMENT.md), [interview demo](docs/DEMO_GUIDE.md), and [unreleased version notes](CHANGELOG.md). Public hosting, spending, release tags, and merge remain approval-gated; nothing is claimed deployed. Dashboard refresh retrieves a consistent database snapshot, not a live push stream.
+
 TRD-6, TRD-13, TRD-15, TRD-16, and TRD-17 are merged. TRD-18 adds processing, eligible cancellation, full fulfillment, and organization-scoped order history. Cancellation releases reserved stock once; fulfillment reduces physical and reserved stock together. Existing workflows remain regression coverage. Shipping, payments, returns, partial fulfillment, backorders, taxes, invoices, credit, multi-currency, full identity administration, and deployment remain excluded. This is a local portfolio implementation; actual verification and PR status are in the [learning journal](docs/LEARNING_JOURNAL.md).
 
 ## Technical baseline

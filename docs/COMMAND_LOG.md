@@ -1,5 +1,15 @@
 # Command log
 
+## 2026-11-06 — TRD-19 (verification in progress)
+
+Root is `C:\Users\minura\Downloads\TradeSphere`; Backend/Frontend mean its corresponding subdirectories. Only actual commands below are execution evidence; release/deployment commands in guides remain suggestions.
+
+- Root: `git fetch origin`, `git log -3 --oneline origin/main`, `git merge-base --is-ancestor 35a2c3f origin/main` — fetch/log succeeded; ancestry returned 1 because TRD-18 was squash merged as `a31044b`. `git switch main`, `git merge --ff-only origin/main`, `git switch -c feature/TRD-19-mvp-release-readiness` succeeded. `--ff-only` refuses divergent history; `-c` creates the branch.
+- Backend: `$env:JAVA_HOME = 'C:\Users\minura\.jdks\jbr-21.0.11'`, `$env:Path = "$env:JAVA_HOME\bin;$env:Path"`, `.\mvnw.cmd -B -ntp verify` — passed 16 unit + 69 real PostgreSQL/API integration tests, none skipped, after dashboard/API coverage. `-B` is batch mode; `-ntp` suppresses transfer progress. Output captured in ignored `.local/trd19-backend.log`, with exit code preserved. Analogy: verify checks both ledger rules and real stock-room transactions.
+- Frontend: `npm run lint`, `npm run test`, `npm run build` — passed; 61 component tests and TypeScript/production bundle checks. `npm run test:e2e` with Java 21, `E2E_BROWSER=msedge`, `E2E_POSTGRES_DB=tradesphere_trd18_e2e`, and an ignored disposable password loaded via `Get-Content` — all six real Edge journeys passed. Output captured in `.local/trd19-browser.log`; no password printed. Existing isolated fictional database reused without destructive reset.
+- Root: Docker Desktop CLI added to process PATH; `docker compose config --quiet` passed. `docker build -t tradesphere:trd19 .` is running with output captured in `.local/trd19-docker-build.log`; slow base-image downloads are not a completed check. `-t` labels the local image; nothing is published. Analogy: compilation tools stay in the workshop, while the final delivery box contains only the runtime.
+- Root: `git diff --check`, `pwsh -File scripts/check-doc-links.ps1`, `.\.local\actionlint\actionlint.exe -color .github/workflows/ci.yml` passed at preparation. Link validation excludes remote URLs/anchors; Actionlint is not hosted execution. Screenshots copied with `Copy-Item` and inspected. Further container/PR/hosted outcomes will be recorded when available.
+
 Important commands actually executed for significant milestones. Paths below are relative to repository root `C:\Users\minura\Downloads\TradeSphere`. This log summarizes repeated runs; it is not a full terminal transcript. Suggested commands belong in the README, not in the executed-results list.
 
 ## 2026-11-06 — TRD-13 product catalog
