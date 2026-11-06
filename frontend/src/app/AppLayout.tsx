@@ -8,7 +8,7 @@ export function AppLayout() {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const editableCapabilities = [user?.canWriteCatalog && 'Catalog', user?.canWriteInventory && 'Inventory',
-    user?.canWriteCustomers && 'Customers', user?.canWritePrices && 'Prices'].filter(Boolean).join(', ')
+    user?.canWriteCustomers && 'Customers', user?.canWritePrices && 'Prices', user?.canWriteOrders && 'Orders'].filter(Boolean).join(', ')
 
   async function logout() {
     setPending(true); setError(null)
@@ -26,6 +26,7 @@ export function AppLayout() {
       <nav aria-label="Main navigation">
         <NavLink className="nav-link" to="/products"><span aria-hidden="true">◇</span> Products</NavLink>
         <NavLink className="nav-link" to="/customers"><span aria-hidden="true">♧</span> Customers</NavLink>
+        <NavLink className="nav-link" to="/orders"><span aria-hidden="true">▣</span> Orders</NavLink>
         <NavLink className="nav-link" to="/warehouses"><span aria-hidden="true">▤</span> Warehouses</NavLink>
         <NavLink className="nav-link" to="/inventory" end><span aria-hidden="true">▦</span> Inventory</NavLink>
         <NavLink className="nav-link" to="/inventory/movements"><span aria-hidden="true">↗</span> Stock movements</NavLink>

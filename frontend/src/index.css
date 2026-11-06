@@ -140,3 +140,6 @@ dd { margin: 0; font-size: 0.9rem; overflow-wrap: anywhere; }
   .form-card, .signin-card { padding: 1.5rem; }
   .filter-bar > div { flex: 1; }
 }
+.order-item-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(10rem, 15rem) auto; gap: 1rem; align-items: center; border-top: 1px solid var(--border); padding: 1.25rem 0; }
+.order-identifier { overflow-wrap: anywhere; }
+@media (max-width: 640px) { .order-item-row { grid-template-columns: 1fr; } .order-item-row .button { justify-self: start; } }

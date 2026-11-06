@@ -25,7 +25,7 @@ Search matches name/contact person/email/phone case-insensitively; `%`/`_` are l
 - `PUT /api/v1/products/{id}/selling-price` with `{"amount":"1234.56","version":0}` → updated price, 200.
 - Existing product list/detail responses now also expose nullable decimal-string `sellingPrice`.
 
-The amount must be a **JSON string**, from `"0"` through `"999999999999.99"`, with at most 12 whole digits and two decimal places. Negative values, extra decimals (even trailing zeros beyond two), exponent/grouped notation, blank/null, JSON numbers, and overflow are rejected with 400; no automatic rounding. Responses always use two decimal places. React retains strings and never converts money through `Number` or `parseFloat`.
+The amount must be a **JSON string**, from `"0"` through `"999999999999.99"`, with at most 12 whole digits and two decimal places. Negative values, extra decimals (even trailing zeros beyond two), exponent/grouped notation, blank/null, JSON numbers, and overflow are rejected with 400; no automatic rounding. Responses always use two decimal places. React retains strings and never converts money through `Number` or `parseFloat`. [TRD-17 orders](ORDERS.md) snapshot this value at creation; changing the catalog price does not reprice those saved orders.
 
 One price applies to the organization's product across warehouses, per its catalog unit. New/existing products start unpriced (`amount:null`, price version 0); unpriced is different from explicitly free (`"0.00"`). There is no clear-price operation after setting it in this slice. Product active status does not restrict price maintenance; order eligibility is deferred. Currency is server-owned LKR, not a configurable payload field.
 

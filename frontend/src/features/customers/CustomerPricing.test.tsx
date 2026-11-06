@@ -23,7 +23,7 @@ const customer: Customer = { id: '11111111-1111-4111-8111-111111111111', name: '
 const product = { id: '22222222-2222-4222-8222-222222222222', name: 'Steel bolt', sku: 'BOLT-1', description: null, category: 'Hardware', unitOfMeasure: 'Each', active: true, version: 0,
   createdAt: customer.createdAt, updatedAt: customer.updatedAt, sellingPrice: null }
 const price = { productId: product.id, currency: 'LKR' as const, amount: null, version: 0 }
-const auth: AuthState = { user: { username: 'sales-test', organizationName: 'Fictional Test Organization', canWriteCatalog: false, canWriteInventory: false, canWriteCustomers: true, canWritePrices: true },
+const auth: AuthState = { user: { username: 'sales-test', organizationName: 'Fictional Test Organization', canWriteCatalog: false, canWriteInventory: false, canWriteCustomers: true, canWritePrices: true, canWriteOrders: false },
   loading: false, error: null, refresh: vi.fn(), signIn: vi.fn(), signOut: vi.fn() }
 const page = { items: [customer], totalElements: 1, page: 0, size: 20, totalPages: 1 }
 function open(path: string, state = auth) { render(<AuthContext.Provider value={state}><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></AuthContext.Provider>) }

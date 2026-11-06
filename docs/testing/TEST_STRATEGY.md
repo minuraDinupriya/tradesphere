@@ -51,4 +51,15 @@ Order reservation/fulfillment tests belong to their future features; TRD-15 resu
 
 Actual results belong in the journal/command log. This is not evidence of unimplemented orders, general price history, multi-currency, or production hardening.
 
+## TRD-17 scenario focus
+
+- Valid single/multi-item pending creation, 1–100 distinct lines, quantities/nulls/fractions/bounds, active/missing/foreign customer/warehouse/products, unpriced versus zero, exact large totals, and immutable price/label snapshots.
+- Order writer versus unrelated writers/readers, anonymous/CSRF denial, scoped lists/detail/actions, and server-owned organization/prices/state.
+- One insufficient later line or absent balance leaves the entire order pending with no reservations. Simulated PostgreSQL trigger failure after an earlier reservation attempt must roll back all balances/ledger/status; the test-only trigger is scoped to its fixture organization and removed afterward.
+- Coordinated concurrent distinct orders compete for stock without overselling; same-order confirmation reserves once; reverse product input order follows a stable lock protocol; receipt/confirmation contention preserves physical/reserved totals. Inspect committed results, not only HTTP statuses.
+- Creation replay compares canonical quantities and never reprices; changed payload conflicts. Confirmation replay succeeds even after later deactivation, retaining actor/time.
+- Component create/list/detail interactions, invalid/duplicate lines, loading/empty/error/success states, uncertain creation payload retention, confirmation retry, and read-only controls. Real browser multi-item creation/confirmation ties snapshots to inventory availability, alongside existing regression workflows.
+
+Unit tests support local rules; only real PostgreSQL tests establish database contention/rollback evidence. Future cancellation/fulfillment and exhaustive deadlock/load/failover guarantees remain outside these results.
+
 See [workflow](../DEVELOPMENT_WORKFLOW.md) for review rules, [README](../../README.md) for runnable commands, and [learning journal](../LEARNING_JOURNAL.md) for executed verification evidence.

@@ -5,6 +5,7 @@ import com.tradesphere.catalog.ProductConflictException;
 import com.tradesphere.catalog.ProductNotFoundException;
 import com.tradesphere.inventory.InventoryException;
 import com.tradesphere.ordering.CustomerException;
+import com.tradesphere.ordering.OrderException;
 import com.tradesphere.catalog.InvalidSellingPriceException;
 
 import jakarta.validation.ConstraintViolationException;
@@ -21,6 +22,11 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RestControllerAdvice
 public class ApiExceptionHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    @ExceptionHandler(OrderException.class)
+    ProblemDetail order(OrderException exception) {
+        return problem(exception.status(), exception.status().getReasonPhrase(), exception.getMessage());
+    }
 
     @ExceptionHandler(CustomerException.class)
     ProblemDetail customer(CustomerException exception) {

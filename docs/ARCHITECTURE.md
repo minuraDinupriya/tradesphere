@@ -1,12 +1,12 @@
 # Architecture
 
-Status: **TRD-6, TRD-13, and TRD-15 are merged; TRD-16 adds customer management and product selling prices**. Order reservations, the order lifecycle, and a general Audit capability remain proposed. Refine proposals using evidence and record significant decisions using the [workflow](DEVELOPMENT_WORKFLOW.md).
+Status: **TRD-6, TRD-13, TRD-15, and TRD-16 are merged; TRD-17 adds pending orders and atomic reservation**. Cancellation/fulfillment and a general Audit capability remain proposed. Refine proposals using evidence and record significant decisions using the [workflow](DEVELOPMENT_WORKFLOW.md).
 
 ## Application shape
 
 Use a modular monolith: one backend deployment, organized by business capability with explicit module ownership. This keeps transactions and local development manageable for a solo developer while providing practice in clear boundaries. Microservices would introduce network failure modes, distributed transactions, and deployment overhead before the business workflow needs them.
 
-React with TypeScript calls the Spring Boot product/session/inventory HTTP APIs. Catalog and Inventory use explicit JDBC persistence and immutable records; no ORM is required for these slices. API naming conventions are defined in the workflow. The [TRD-13 decision](decisions/0002-product-catalog-and-session-access.md) and [TRD-15 decision](decisions/0003-warehouse-inventory.md) explain current data flow and tradeoffs. Shared HTTP exception translation lives in `com.tradesphere.api`.
+React with TypeScript calls Spring Boot session/catalog/customer/inventory/order HTTP APIs. Modules use explicit JDBC persistence and immutable records; no ORM is required for these slices. API naming follows the workflow. The [catalog decision](decisions/0002-product-catalog-and-session-access.md), [inventory decision](decisions/0003-warehouse-inventory.md), and [order decision](decisions/0005-order-reservation.md) explain data flow/tradeoffs. Shared HTTP exception translation lives in `com.tradesphere.api`.
 
 ## Baseline technologies and purpose
 
@@ -38,7 +38,7 @@ Use business-capability packages, with internal organization kept as simple as t
 
 TRD-16 implements customers within Ordering, retaining its existing provisional ownership without implementing orders. Catalog owns a nullable LKR price on each product, represented by `BigDecimal`/PostgreSQL `numeric(14,2)` and decimal strings over HTTP/React. Independent customer and price write authorities prevent catalog/inventory permissions from implicitly granting sales mutations. Customer and price edits use atomic version checks; price has its own version so catalog edits cannot overwrite it. Price input rejects extra decimal places before SQL and a scoped deserializer rejects JSON numeric coercion. See [decision 0004](decisions/0004-customers-and-sales-pricing.md) and [API](api/CUSTOMERS_AND_PRICING.md).
 
-V5 adds customers, selling-price/price-version columns, and default-false permission flags; existing users are not upgraded to writers. A shared React `useRemoteData` hook now owns abortable reads previously local to Inventory. General identity lifecycle and price history remain deferred; future orders must define immutable price snapshots before implementation.
+V5 adds customers, selling-price/price-version columns, and default-false permission flags; existing users are not upgraded to writers. Shared React `useRemoteData` owns abortable reads. Identity lifecycle and general price history remain deferred; TRD-17 implements the creation-time order snapshots described below.
 
 ## Receipt consistency
 
@@ -46,11 +46,17 @@ V5 adds customers, selling-price/price-version columns, and default-false permis
 
 Balances enforce nonnegative on-hand/reserved and `reserved <= on_hand`; `available` is generated as their difference. Whole-unit values are limited to JavaScript's exact integer range. Inventory's read projections join current catalog/user labels with organization predicates; this deliberate read-only coupling is recorded in [decision 0003](decisions/0003-warehouse-inventory.md). Inventory does not mutate those modules' data. Movement identifiers/quantity/actor/time are persisted, but current labels are not historical snapshots and the database is not a tamper-proof audit store.
 
-## Proposed order consistency strategy
+## Implemented order confirmation
+
+TRD-17's `OrderService` owns the order transaction and price/label snapshots; `CatalogProductAccess` and `InventoryOrderAccess` expose explicit operations requiring that transaction. V6 adds pending/confirmed headers/items, a separate reservation ledger, default-false order permission, and composite tenant references. Creation uses an organization/request unique key and canonical payload comparison. Confirmation locks the tenant-scoped order row, returns a confirmed replay immediately, then acquires warehouse/customer and all sorted product eligibility locks before any sorted balance writes.
+
+Inventory conditionally increments reserved stock only when available is sufficient; a later-line failure rolls back earlier increments, ledger rows, and the header transition. On-hand and physical receipt history do not change. Deterministic UUID text ordering matches PostgreSQL UUID sorting. This protocol accounts for current receipt locks; it is not a universal guarantee against deadlocks in unspecified future operations. Price snapshots are BigDecimal/numeric values returned as strings; header/line totals have wider precision than product prices. See [decision 0005](decisions/0005-order-reservation.md) and [order API](api/ORDERS.md).
+
+## Future order lifecycle consistency
 
 An order transition and its inventory changes should share one database transaction. A transaction groups changes so they commit together or roll back together. It prevents a confirmed order from surviving without its reservations, but transaction boundaries alone do not prevent overselling.
 
-Candidate implementation approach:
+For future multi-item lifecycle changes, retain the implemented atomicity and lock protocol; the earlier design outline is:
 
 1. Resolve and verify the authenticated organization and the referenced records.
 2. Lock or conditionally transition the order so concurrent lifecycle requests cannot apply its effects twice.
@@ -60,9 +66,9 @@ Candidate implementation approach:
 
 Cancellation and fulfillment should guard both the order transition and reservation state so each reservation is released or consumed once. Consistent lock ordering reduces deadlock risk; failure/retry behavior still needs design and testing.
 
-**Proposed starting choice:** PostgreSQL row locking for understandable contention handling. Conditional updates or optimistic version checks are alternatives; they may require explicit conflict retries and careful multi-item rollback. The final choice depends on implementation and concurrency-test evidence. An unlocked read-then-write availability check is insufficient.
+TRD-17 combines order-row locking for idempotency with conditional stock updates for contention. Optimistic versions or serializable transactions are alternatives with explicit retry tradeoffs. An unlocked read-then-write availability check is insufficient. Cancellation/fulfillment require their own state/ledger guards and tests before implementation.
 
-Database checks, unique constraints, and foreign keys reinforce receipt invariants in V4. Proposed reservation records should identify their order and stock scope so retries cannot duplicate reservation effects. The balance schema and receipt retry policy now exist; reservation records and order transitions still need design before implementation.
+Database checks/unique constraints/composite foreign keys reinforce receipt and reservation invariants in V4/V6. Reservations identify their organization/order/warehouse/product and actor. Release/consumption/expiry remain unimplemented; confirmed stock stays reserved until a future authorized lifecycle operation exists.
 
 ## Organization boundary
 

@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: TRD-6, TRD-13, and TRD-15 are merged. TRD-16 adds customer management and LKR selling prices. Full identity administration and order behavior remain planned. This is a planned sequence, not a fixed delivery schedule; see the [learning journal](LEARNING_JOURNAL.md) for actual evidence and PR status.
+Status: TRD-6, TRD-13, TRD-15, and TRD-16 are merged. TRD-17 implements pending orders and atomic confirmation/reservation. Cancellation, fulfillment, full identity administration, and deployment remain planned. This is a planned sequence, not a fixed schedule; see the [learning journal](LEARNING_JOURNAL.md) for actual evidence and PR status.
 
 The goal is a defensible, functioning MVP before adding advanced infrastructure. Internship interviews begin in January 2027; prioritize working core flows and the ability to explain them over completing every phase by that date.
 
@@ -24,7 +24,7 @@ Exit evidence: a receipt changes the correct balance, availability follows the s
 
 ## Phase 3: customers and order correctness
 
-TRD-16 implements the customer and LKR selling-price prerequisites with independent permissions and exact monetary data. It does not implement orders, taxes, credit, invoices, or payment behavior. Order lifecycle and price-snapshot decisions below remain planned.
+TRD-16 implements customer/LKR price prerequisites. TRD-17 adds pending multi-item orders, immutable creation-time snapshots, all-or-nothing reservation, safe retries, and PostgreSQL contention/rollback coverage. Cancellation, fulfillment, expiry/amendment, taxes, credit, invoices, and payments remain unimplemented; this phase is not entirely complete.
 
 Implement customer management and the single-warehouse order workflow. Resolve lifecycle eligibility and API retry behavior. Cover atomic confirmation, contention, exactly-once cancellation effects, fulfillment, and relevant audit records.
 
