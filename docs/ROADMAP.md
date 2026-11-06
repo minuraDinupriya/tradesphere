@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: TRD-6 implements documentation and the engineering foundation portion of phase 1. Business features and the access boundary remain unimplemented. This is a planned sequence, not a fixed delivery schedule; see the [learning journal](LEARNING_JOURNAL.md) for actual validation evidence.
+Status: TRD-6 is merged; TRD-13 implements the first catalog slice and a minimal session/organization access boundary. Full identity administration and the remaining business capabilities are not implemented. This is a planned sequence, not a fixed delivery schedule; see the [learning journal](LEARNING_JOURNAL.md) for actual evidence and PR status.
 
 The goal is a defensible, functioning MVP before adding advanced infrastructure. Internship interviews begin in January 2027; prioritize working core flows and the ability to explain them over completing every phase by that date.
 
@@ -10,13 +10,15 @@ The project context, requirements, proposed architecture, agent instructions, wo
 
 ## Phase 1: runnable foundation and access boundary
 
-TRD-6 establishes Git/branch/PR conventions, compatible backend/frontend scaffolds, PostgreSQL with Flyway, local setup, and CI validation. Authentication and authorization are outside TRD-6: resolve the organization, membership, and authentication model in separately authorized work before exposing tenant-owned data. This phase is not complete merely because the foundation runs.
+TRD-6 establishes Git/branch/PR conventions, compatible scaffolds, PostgreSQL/Flyway, local setup, and CI. TRD-13 adds the separately approved minimal sign-in and catalog access boundary, including cross-organization tests. Full membership administration remains future scope.
 
 Exit evidence: documented setup works, migrations and available checks run, and an initial protected flow demonstrates backend access control and organization isolation.
 
 ## Phase 2: catalog, warehouses, receipts, and availability
 
 Deliver incremental working slices for products, the three fictional warehouses, receipts, and stock availability. Resolve fields and quantity semantics as each feature requires. Add corresponding UI and tests instead of postponing all integration until the end.
+
+TRD-13 covers product catalog only. Warehouse, receipt, and stock-availability behavior remains unstarted; active/inactive product status does not implement stock or order eligibility rules.
 
 Exit evidence: a receipt changes the correct balance, availability follows the stock formula, and unauthorized or cross-organization access is rejected.
 

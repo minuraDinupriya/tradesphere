@@ -1,12 +1,12 @@
 # Architecture
 
-Status: **foundation implemented in TRD-6; business design remains proposed**. The application skeleton, PostgreSQL connectivity, Flyway schema migration, frontend routing/layout, and CI workflow exist. No business modules, authentication, or tenant enforcement are implemented. Refine proposals using implementation evidence and record significant decisions using the [workflow](DEVELOPMENT_WORKFLOW.md).
+Status: **TRD-6 foundation and TRD-13 catalog/minimal session access are implemented**. Catalog has JDBC persistence, validation, organization-scoped APIs, optimistic edits, and integrated React screens. Minimal Identity supports organization-bound users and read/write permissions. Inventory, Ordering, Audit, and the business design below remain proposed. Refine proposals using evidence and record significant decisions using the [workflow](DEVELOPMENT_WORKFLOW.md).
 
 ## Application shape
 
 Use a modular monolith: one backend deployment, organized by business capability with explicit module ownership. This keeps transactions and local development manageable for a solo developer while providing practice in clear boundaries. Microservices would introduce network failure modes, distributed transactions, and deployment overhead before the business workflow needs them.
 
-React with TypeScript will call a Spring Boot HTTP API. The backend uses PostgreSQL with JDBC for foundation connectivity; future business persistence mapping is unresolved. The frontend placeholder currently makes no API calls. API naming conventions are defined in the workflow.
+React with TypeScript calls the Spring Boot product/session HTTP APIs. Catalog retains explicit JDBC persistence and immutable records; no ORM is required for this slice. API naming conventions are defined in the workflow. The [TRD-13 decision](decisions/0002-product-catalog-and-session-access.md) explains the current data flow and design tradeoffs.
 
 ## Baseline technologies and purpose
 
@@ -22,7 +22,7 @@ React with TypeScript will call a Spring Boot HTTP API. The backend uses Postgre
 
 Do not select exact framework versions from these documents alone; verify supported, compatible releases when scaffolding is authorized.
 
-TRD-6 uses a Maven Wrapper and npm lockfile for repeatable builds. Flyway V1 creates the `tradesphere` schema without business tables; its history stays in `public`. Only Actuator health is exposed, without component details. Applications run on the host and PostgreSQL runs in Compose. See [foundation decision](decisions/0001-engineering-foundation.md) and [setup commands](../README.md).
+TRD-6 uses a Maven Wrapper and npm lockfile for repeatable builds. Flyway V1 creates the `tradesphere` schema; V2 adds organizations/users and V3 adds products. History stays in `public`. Only Actuator health (including readiness) is public, without component details. Applications run on the host and PostgreSQL runs in Compose. See [foundation decision](decisions/0001-engineering-foundation.md) and [setup commands](../README.md).
 
 ## Proposed module ownership
 
@@ -56,7 +56,7 @@ Database checks, unique constraints, and foreign keys should reinforce invariant
 
 Propose a shared database/schema with an organization identifier on tenant-owned records. Every access path must enforce authorized organization scope. Consider organization-aware foreign/unique keys to prevent cross-organization relationships. Authentication identifies the caller; authorization determines permitted actions and organizations.
 
-PostgreSQL row-level security is an alternative defense to evaluate, not a current commitment. Application scoping must be tested against cross-organization access regardless of the database approach. Authentication mechanism, role model, and session/token storage are open decisions.
+TRD-13 uses Spring Security server-side sessions, BCrypt hashes, and CSRF protection. Identity records bind each user to one organization; controllers derive that scope from the authenticated principal, and all catalog repository queries include it. Product payloads never establish organization authority. Full membership/role administration remains open. PostgreSQL row-level security is an alternative defense to evaluate, not implemented; actual application scoping is covered by PostgreSQL/API tests.
 
 ## Audit and external effects
 
