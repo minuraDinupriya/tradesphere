@@ -6,12 +6,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://127.0.0.1:8080',
+      '/api': process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:8080',
     },
   },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     clearMocks: true,
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 })
