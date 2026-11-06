@@ -370,6 +370,8 @@ Hosted [run 42243359827](https://github.com/minuraDinupriya/tradesphere/actions/
 
 ## 2026-11-06 — TRD-19: Dashboard and MVP release preparation
 
+Deployment decision: after reviewing the $13.30/month Render baseline proposal, the developer explicitly chose **keep deployment local for now**. Remote deployment acceptance is deferred; no paid resource or public URL was created. Continue local use and preserve the proposal for later reconsideration, without treating it as approval.
+
 **Date and Jira ticket:** [TRD-19](https://minuraranaweera.atlassian.net/browse/TRD-19), branch `feature/TRD-19-mvp-release-readiness`, from merged TRD-18 `a31044b`. Actual Jira/attachment read. Public deployment, spending, tag publication, and merge remain unapproved; this entry records implemented local work, not a deployed release.
 
 **What We Built:** a real organization-scoped operational dashboard, recent orders/status links, loading/empty/error/refresh states, and a non-root same-origin demo container/profile. Added deployment/recovery guidance, unreleased v0.1.0 notes, and an interview demo guide. Existing business workflows remain intact. Container/hosted results are recorded separately when executed.

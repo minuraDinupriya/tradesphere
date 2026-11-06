@@ -1,6 +1,6 @@
 # Demonstration deployment — proposal, not deployed
 
-Status: local preparation for TRD-19. No provider resource has been created, no public URL verified, and no release published. Owner approval is required before spending, provisioning, or public exposure.
+Status: **the developer chose to keep deployment local on 2026-11-06** after reviewing the paid Render proposal. No provider resource has been created, no public URL verified, and no release published. Remote deployment is deferred by that decision, not claimed complete. Future spending, provisioning, or public exposure requires new explicit authorization.
 
 ## Minimal architecture
 
