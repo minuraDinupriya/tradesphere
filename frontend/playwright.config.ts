@@ -28,7 +28,7 @@ export default defineConfig({
         BOOTSTRAP_ENABLED: 'true',
         BOOTSTRAP_USERNAME: 'e2e-catalog-editor',
         BOOTSTRAP_PASSWORD: password,
-        BOOTSTRAP_ORGANIZATION_NAME: 'TRD-13 Fictional Browser Test Organization',
+        BOOTSTRAP_ORGANIZATION_NAME: 'TradeSphere Fictional Browser Test Organization',
       },
     },
     { command: 'npm run dev -- --port 5174', url: 'http://127.0.0.1:5174',
