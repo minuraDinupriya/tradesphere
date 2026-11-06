@@ -54,6 +54,7 @@ class FoundationIT {
     @Test
     void configurationEndpointsAreNotPubliclyAccessible() throws Exception {
         assertThat(get("/actuator/env").statusCode()).isEqualTo(401);
+        assertThat(get("/api/v1/dashboard").statusCode()).isEqualTo(401);
         assertThat(get("/actuator/configprops").statusCode()).isEqualTo(401);
     }
 

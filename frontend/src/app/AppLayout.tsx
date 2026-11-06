@@ -20,10 +20,11 @@ export function AppLayout() {
   return <div className="app-shell">
     <a className="skip-link" href="#main-content">Skip to content</a>
     <aside className="sidebar">
-      <NavLink className="brand" to="/products" aria-label="TradeSphere home"><span className="brand-mark" aria-hidden="true">TS</span>TradeSphere</NavLink>
+      <NavLink className="brand" to="/dashboard" aria-label="TradeSphere home"><span className="brand-mark" aria-hidden="true">TS</span>TradeSphere</NavLink>
       <div className="organization-card"><span className="eyebrow">Workspace</span><strong>{user?.organizationName}</strong></div>
       <p className="nav-section-label">Workspace</p>
       <nav aria-label="Main navigation">
+        <NavLink className="nav-link" to="/dashboard"><span aria-hidden="true">▦</span> Dashboard</NavLink>
         <NavLink className="nav-link" to="/products"><span aria-hidden="true">◇</span> Products</NavLink>
         <NavLink className="nav-link" to="/customers"><span aria-hidden="true">♧</span> Customers</NavLink>
         <NavLink className="nav-link" to="/orders"><span aria-hidden="true">▣</span> Orders</NavLink>

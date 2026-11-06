@@ -20,6 +20,10 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/readiness", "/api/v1/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .requestMatchers("/api/v1/auth/session").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/dashboard").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/", "/index.html", "/assets/**", "/dashboard",
+                                "/products", "/products/**", "/customers", "/customers/**", "/orders", "/orders/**",
+                                "/warehouses", "/warehouses/**", "/inventory", "/inventory/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/*/selling-price").hasAuthority("prices:read")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/products/*/selling-price").hasAuthority("prices:write")
                         .requestMatchers(HttpMethod.GET, "/api/v1/customers", "/api/v1/customers/**").hasAuthority("customers:read")

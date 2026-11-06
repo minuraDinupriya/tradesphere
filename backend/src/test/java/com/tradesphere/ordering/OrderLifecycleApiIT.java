@@ -309,6 +309,25 @@ class OrderLifecycleApiIT {
                 .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("fk_order_movement_actor");
     }
 
+    @Test
+    void dashboardShowsOnlyCurrentOrganizationsOrdersAndAllowsReadOnlyUsers() throws Exception {
+        var client = signedIn(writer);
+        for (var state : new String[]{"PENDING","CONFIRMED","PROCESSING","FULFILLED","CANCELLED"}) reach(client,state);
+        var response = signedIn(viewer).send("GET","/dashboard",null,false);
+        assertThat(response.statusCode()).isEqualTo(200);
+        var summary = json(response);
+        assertThat(summary.path("counts").path("totalOrders").asLong()).isEqualTo(5);
+        assertThat(summary.path("counts").path("activeProducts").asLong()).isEqualTo(2);
+        assertThat(summary.path("recentOrders").size()).isEqualTo(5);
+        assertThat(summary.path("ordersByStatus").size()).isEqualTo(5);
+        for (var index=0; index<5; index++) assertThat(summary.path("ordersByStatus").get(index).path("total").asLong()).isEqualTo(1);
+        var foreign = signedIn(outsider).send("GET","/dashboard",null,false);
+        assertThat(foreign.statusCode()).isEqualTo(200);
+        assertThat(json(foreign).path("counts").path("totalOrders").asLong()).isZero();
+        assertThat(json(foreign).path("recentOrders").size()).isZero();
+        assertThat(new ApiClient().send("GET","/dashboard",null,false).statusCode()).isEqualTo(401);
+    }
+
     private void installFailure() {
         failureName = "life_fail_" + UUID.randomUUID().toString().replace("-", "");
         var last = List.of(first.id(),second.id()).stream().map(UUID::toString).sorted().toList().get(1);
