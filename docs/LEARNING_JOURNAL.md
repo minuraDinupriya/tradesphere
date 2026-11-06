@@ -76,7 +76,7 @@ Non-fatal Maven repository-metadata and Mockito agent warnings appeared during s
 
 **Date and Jira ticket**
 
-2026-11-06 (Asia/Colombo). TRD-13, with branch `feature/TRD-13-product-catalog`, started from merged TRD-6 (`5facf9a`). Jira URL is not known. Commits: backend `40482c6`, frontend/browser validation `ae236b8`, documentation `20b64f4`. [PR #2](https://github.com/minuraDinupriya/tradesphere/pull/2) is open and unmerged.
+2026-11-06 (Asia/Colombo). TRD-13, with branch `feature/TRD-13-product-catalog`, started from merged TRD-6 (`5facf9a`). Jira URL is not known. Commits: backend `40482c6`, frontend/browser validation `ae236b8`, documentation `20b64f4`. Update during TRD-15: [PR #2](https://github.com/minuraDinupriya/tradesphere/pull/2) was merged by the developer; current base is `7d7b048`. Its original review-pending notes below describe the earlier report, not current PR status.
 
 **What We Built**
 
@@ -100,7 +100,7 @@ A hardware-store clerk's staff badge establishes which distributor they work for
 
 1. [V2](../backend/src/main/resources/db/migration/V2__create_organization_users.sql) adds organizations/users; [V3](../backend/src/main/resources/db/migration/V3__create_products.sql) adds products, constraints, and indexes. No credentials are seeded by migrations.
 2. [SecurityConfiguration](../backend/src/main/java/com/tradesphere/identity/SecurityConfiguration.java) enforces permissions/CSRF. [OrganizationUserDetailsService](../backend/src/main/java/com/tradesphere/identity/OrganizationUserDetailsService.java) loads the organization and BCrypt hash; [SessionController](../backend/src/main/java/com/tradesphere/identity/SessionController.java) returns safe session/CSRF DTOs. Bootstrap is explicit and only acts on an empty user database.
-3. [ProductController](../backend/src/main/java/com/tradesphere/catalog/ProductController.java) validates input and derives organization scope from the principal. [ProductService](../backend/src/main/java/com/tradesphere/catalog/ProductService.java) normalizes values and owns transactions; [ProductRepository](../backend/src/main/java/com/tradesphere/catalog/ProductRepository.java) binds SQL parameters, applies tenant predicates, and performs version-checked updates. [ApiExceptionHandler](../backend/src/main/java/com/tradesphere/catalog/ApiExceptionHandler.java) maps expected failures to useful Problem Details.
+3. [ProductController](../backend/src/main/java/com/tradesphere/catalog/ProductController.java) validates input and derives organization scope from the principal. [ProductService](../backend/src/main/java/com/tradesphere/catalog/ProductService.java) normalizes values and owns transactions; [ProductRepository](../backend/src/main/java/com/tradesphere/catalog/ProductRepository.java) binds SQL parameters, applies tenant predicates, and performs version-checked updates. [ApiExceptionHandler](../backend/src/main/java/com/tradesphere/api/ApiExceptionHandler.java) maps expected failures to useful Problem Details (moved from Catalog to shared API in TRD-15).
 4. [AuthProvider](../frontend/src/features/identity/AuthProvider.tsx) tracks sign-in. The [HTTP client](../frontend/src/shared/api/http.ts) supplies cookies/CSRF tokens; [productApi](../frontend/src/features/catalog/productApi.ts) separates API calls from [list](../frontend/src/features/catalog/ProductListPage.tsx), [form](../frontend/src/features/catalog/ProductFormPage.tsx), and [detail](../frontend/src/features/catalog/ProductDetailsPage.tsx) components.
 
 **Engineering Decisions**
@@ -132,3 +132,62 @@ Uncovered risks: Firefox/Safari were not run; this is not exhaustive accessibili
 
 1. In your local fictional catalog, open the same product in two tabs, save one, and explain why the other receives 409. Inspect the request version and the SQL predicate before trying to resolve the conflict.
 2. Add a focused test for a new validation boundary in a temporary exercise branch, predict its failure, and implement the smallest fix. Explain whether it belongs in unit, API/PostgreSQL, or browser coverage. This is practice, not an additional approved feature.
+
+## 2026-11-06 — TRD-15: Warehouse and inventory operations
+
+**Date and Jira ticket**
+
+2026-11-06 (Asia/Colombo). [TRD-15](https://minuraranaweera.atlassian.net/browse/TRD-15), branch `feature/TRD-15-warehouse-inventory`, based on merged TRD-13 (`7d7b048`). Commits: backend `baafab3`, frontend/tests `91ef466`, documentation `191d610`, browser diagnostics `6ee82be`. [PR #3](https://github.com/minuraDinupriya/tradesphere/pull/3) is open and unmerged. Implementation and verification are recorded below; developer review/merge and demonstrated understanding remain separate outstanding states. The earlier mentoring-policy draft remains in its named stash, separate from this deliverable.
+
+**What We Built**
+
+Organization-scoped warehouse create/view/edit/search/filter/pagination, receiving one active product into an active warehouse, on-hand/reserved/available views, and receipt history/detail. Inventory write access is separate from catalog access. Existing accounts do not silently gain it. A repeated receipt request returns the original result without another stock increase; concurrent distinct receipts retain both increments. Orders, reservations, corrections, transfers, and procurement were not implemented. See the [API](api/INVENTORY.md).
+
+**Concepts I Should Understand**
+
+- **Atomicity versus concurrency:** a transaction makes movement and stock commit/rollback together; an atomic SQL increment also prevents competing requests from overwriting each other's totals. These solve different problems.
+- **Idempotency:** an organization-scoped request ID identifies one intended delivery. A database unique constraint arbitrates races, while payload comparison prevents reusing the ID for a different delivery.
+- **Database-generated values:** PostgreSQL computes available stock from on-hand minus reserved and checks their relationship, avoiding three independently editable quantities.
+- **Defense in depth:** server permissions guard actions, organization predicates scope reads/writes, and composite foreign keys reject cross-organization relationships. None substitutes for the others. The catalog/session basics are covered in the earlier entry.
+- **Uncertain outcomes:** a missing HTTP response does not mean the transaction failed. Retain the original submitted payload for retry rather than create a fresh delivery ID.
+
+**Real-World Analogy**
+
+A warehouse clerk stamps a numbered delivery slip and updates the stock ledger together. If the confirmation call drops, showing the same slip finds the existing stamp; it does not unload the same truck twice. Two different slips add their quantities to the ledger. The stamp (request uniqueness), combined ledger operation (transaction), and safe addition (atomic update) each have a different job.
+
+**How It Works Internally**
+
+1. [StockReceivingPage](../frontend/src/features/inventory/StockReceivingPage.tsx) selects warehouse/product and creates a UUID for the receipt. The existing HTTP client sends the session and CSRF token. After an uncertain response, fields stay locked and retry reuses the exact payload.
+2. [InventoryController](../backend/src/main/java/com/tradesphere/inventory/InventoryController.java) obtains organization/user IDs from the principal. [InventoryService](../backend/src/main/java/com/tradesphere/inventory/InventoryService.java) first checks for a replay, locks warehouse/product eligibility, inserts a movement, then increments the balance in the same transaction.
+3. [InventoryRepository](../backend/src/main/java/com/tradesphere/inventory/InventoryRepository.java) uses `ON CONFLICT` for request uniqueness and balance upsert. [V4](../backend/src/main/resources/db/migration/V4__create_warehouse_inventory.sql) supplies composite foreign keys, generated availability, and integrity checks. Overflow throws an exception and rolls back the inserted movement.
+4. [WarehouseService](../backend/src/main/java/com/tradesphere/inventory/WarehouseService.java) uses version-checked edits; [CatalogProductAccess](../backend/src/main/java/com/tradesphere/catalog/CatalogProductAccess.java) exposes the eligibility lock across the module boundary. Read projections join current labels without mutating other modules.
+
+**Engineering Decisions**
+
+Keep JDBC, one PostgreSQL transaction, and existing React styles; no broker/cache/new framework. Use atomic upsert instead of Java read/overwrite, and request uniqueness instead of trusting a disabled button. Shared eligibility locks allow receipts to run concurrently while blocking deactivation. Cap whole-unit quantities at JavaScript's exact integer limit rather than silently round large/fractional numbers. [Decision 0003](decisions/0003-warehouse-inventory.md) records alternatives and visual-reference limitations. Current labels are not historical snapshots; retry state is lost on navigation/reload, so history must be checked before entering a replacement delivery.
+
+**Problems and Debugging**
+
+- Real PostgreSQL tests failed on nullable UUID filters: `IS NULL` alone left a bound parameter's type unknown. Explicit `CAST(... AS uuid)` fixed that query path; the integration suite then passed.
+- A negative API test expected fractional quantity 1.5 to fail, but Jackson coerced it to integer 1. Disabled float-to-integer coercion; the same test now rejects it with 400 and no receipt effect.
+- TypeScript rejected a filter interface passed as an indexed record; passing an object spread satisfied the helper contract without an unsafe cast. Rebuilt successfully.
+- Self-review found that a later 403 after an uncertain response reset the receipt ID. Added a focused regression test first: it failed because the quantity input became enabled. Preserving the original payload through subsequent errors made the test pass. This was a local defect, not a production incident; TDD was used for this regression, not claimed for the whole feature.
+
+Actual verification: backend `.\mvnw.cmd -B -ntp verify` passed **8 unit + 23 PostgreSQL/API tests**, none skipped. Frontend `npm run lint`, `npm run test` (**22 component tests**), and `npm run build` passed. `npm run test:e2e` passed **3 real Edge tests**, including a server-committed receipt with a deliberately dropped response and same-ID recovery (25 total units, not 30). `npm run test -- src/features/inventory/Inventory.test.tsx` failed for the new regression before the fix, then passed all 11 inventory tests. Exact commands/directories and other checks are in [COMMAND_LOG.md](COMMAND_LOG.md).
+
+Uncovered: order lifecycle correctness, Firefox/Safari, exhaustive accessibility/load/failover testing, immediate permission revocation, durable retry drafts, and production deployment. Inventory-specific Figma previews could not be inspected; actual browser screenshots were reviewed using the established visual system. No external review or learner understanding is claimed.
+
+Hosted verification: [initial run 42227320592](https://github.com/minuraDinupriya/tradesphere/actions/runs/42227320592) passed backend and frontend checks but its inventory browser test timed out waiting for the uncertain-response alert. The logs did not identify the root cause and no browser artifact was retained. A fresh local database (`tradesphere_trd15_ci_repro`) passed all three Edge workflows. Added a native-form-validity assertion and failure-only trace artifact retention; [run 42227941405](https://github.com/minuraDinupriya/tradesphere/actions/runs/42227941405) on `6ee82be` passed both jobs, including real Chromium workflows and database cleanup. **The earlier intermittent browser failure remains unexplained; a passing subsequent run is not proof its root cause was fixed.** Future failures now retain evidence. See the latest PR checks for subsequent documentation-only heads.
+
+**Interview Questions**
+
+1. **Why isn't `@Transactional` enough to prevent lost stock updates?** Two transactions can read the same old value and both overwrite it; SQL must lock, compare a version, or increment the current row atomically. This feature uses an atomic upsert.
+2. **How do retries avoid duplicate receipts?** A unique organization/request key permits one insert; a retry compares its normalized payload and returns the original movement. A different payload gets 409.
+3. **What if a movement inserts successfully but the balance overflows?** The runtime exception rolls back the transaction, so neither the movement nor the balance change commits. PostgreSQL integration tests verify this.
+4. **Why add organization to foreign keys when IDs are UUIDs?** UUID uniqueness does not establish authorized ownership. Composite references enforce that related records belong to the same organization.
+5. **What can a client infer from a network timeout?** Only that it did not receive confirmation; the server may have committed. Retry the same operation ID or reconcile history rather than assume failure.
+
+**What I Should Practise**
+
+1. Trace the receipt's request ID from React through the controller/service to both SQL statements. Explain in your own words which mechanism prevents partial writes, lost increments, and duplicate deliveries.
+2. On a disposable exercise branch, predict and test what happens when two receipts of 7 and 11 units arrive together, then when both use one request ID with different quantities. Use database assertions, not only HTTP status codes. This is suggested practice, not work already completed by the developer.

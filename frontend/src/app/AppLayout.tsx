@@ -21,11 +21,16 @@ export function AppLayout() {
       <NavLink className="brand" to="/products" aria-label="TradeSphere home"><span className="brand-mark" aria-hidden="true">TS</span>TradeSphere</NavLink>
       <div className="organization-card"><span className="eyebrow">Workspace</span><strong>{user?.organizationName}</strong></div>
       <p className="nav-section-label">Workspace</p>
-      <nav aria-label="Main navigation"><NavLink className="nav-link" to="/products"><span aria-hidden="true">◇</span> Products</NavLink></nav>
+      <nav aria-label="Main navigation">
+        <NavLink className="nav-link" to="/products"><span aria-hidden="true">◇</span> Products</NavLink>
+        <NavLink className="nav-link" to="/warehouses"><span aria-hidden="true">▤</span> Warehouses</NavLink>
+        <NavLink className="nav-link" to="/inventory" end><span aria-hidden="true">▦</span> Inventory</NavLink>
+        <NavLink className="nav-link" to="/inventory/movements"><span aria-hidden="true">↗</span> Stock movements</NavLink>
+      </nav>
       <p className="sidebar-note">TradeSphere<br />Fictional B2B commerce platform</p>
     </aside>
-    <div className="workspace"><header className="topbar"><div><span className="small muted">{user?.organizationName}</span><p className="topbar-title">Product workspace</p></div>
-      <div className="account-menu"><div><strong>{user?.username}</strong><span className="small muted">{user?.canWriteCatalog ? 'Catalog editor' : 'Read-only access'}</span></div>
+    <div className="workspace"><header className="topbar"><div><span className="small muted">{user?.organizationName}</span><p className="topbar-title">Business workspace</p></div>
+      <div className="account-menu"><div><strong>{user?.username}</strong><span className="small muted">{user?.canWriteInventory ? user.canWriteCatalog ? 'Catalog & inventory editor' : 'Inventory editor' : user?.canWriteCatalog ? 'Catalog editor' : 'Read-only access'}</span></div>
         <button className="button secondary" disabled={pending} onClick={() => void logout()}>{pending ? 'Signing out…' : 'Sign out'}</button></div></header>
       <main id="main-content" tabIndex={-1}>{error && <p role="alert" className="error-panel">{error}</p>}<Outlet /></main>
     </div>

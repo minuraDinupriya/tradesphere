@@ -16,7 +16,7 @@ vi.mock('./features/catalog/productApi', () => ({ productApi: {
 const product: Product = { id: '0c995ca5-f5e2-4e4b-9655-b24b05919b41', sku: 'BOLT-01', name: 'Steel bolt', description: 'Fictional test product',
   category: 'Hardware', unitOfMeasure: 'Each', active: true, version: 0, createdAt: '2026-11-06T09:00:00Z', updatedAt: '2026-11-06T09:00:00Z' }
 const page: ProductPage = { items: [product], totalElements: 1, page: 0, size: 20, totalPages: 1 }
-const editor: AuthState = { user: { username: 'test-editor', organizationName: 'Fictional Test Distributor', canWriteCatalog: true },
+const editor: AuthState = { user: { username: 'test-editor', organizationName: 'Fictional Test Distributor', canWriteCatalog: true, canWriteInventory: false },
   loading: false, error: null, refresh: vi.fn(), signIn: vi.fn(), signOut: vi.fn() }
 
 function renderApp(path = '/products', auth = editor) {

@@ -6,6 +6,12 @@ import { ProductListPage } from './features/catalog/ProductListPage'
 import { SignInPage } from './features/identity/SignInPage'
 import { useAuth } from './features/identity/useAuth'
 import { ErrorState, LoadingState } from './shared/components/Feedback'
+import { WarehouseListPage } from './features/inventory/WarehouseListPage'
+import { WarehouseFormPage } from './features/inventory/WarehouseFormPage'
+import { WarehouseDetailsPage } from './features/inventory/WarehouseDetailsPage'
+import { InventoryPage } from './features/inventory/InventoryPage'
+import { StockReceivingPage } from './features/inventory/StockReceivingPage'
+import { MovementDetailsPage } from './features/inventory/MovementDetailsPage'
 
 function App() {
   const { user, loading, error, refresh } = useAuth()
@@ -21,6 +27,14 @@ function App() {
       <Route path="products/new" element={<ProductFormPage key="new" />} />
       <Route path="products/:id/edit" element={<ProductFormPage key={location.pathname} />} />
       <Route path="products/:id" element={<ProductDetailsPage key={location.pathname} />} />
+      <Route path="warehouses" element={<WarehouseListPage />} />
+      <Route path="warehouses/new" element={<WarehouseFormPage key="new-warehouse" />} />
+      <Route path="warehouses/:id/edit" element={<WarehouseFormPage key={location.pathname} />} />
+      <Route path="warehouses/:id" element={<WarehouseDetailsPage key={location.pathname} />} />
+      <Route path="inventory" element={<InventoryPage key={location.pathname + location.search} />} />
+      <Route path="inventory/receive" element={<StockReceivingPage key={location.pathname + location.search} />} />
+      <Route path="inventory/movements" element={<InventoryPage history key={location.pathname + location.search} />} />
+      <Route path="inventory/movements/:id" element={<MovementDetailsPage key={location.pathname} />} />
       <Route path="*" element={<section className="state-panel"><h1>Page not found</h1>
         <p>The page you requested does not exist.</p><Link className="text-link" to="/products">Return to products</Link></section>} />
     </Route>

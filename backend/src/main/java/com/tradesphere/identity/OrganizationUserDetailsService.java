@@ -25,9 +25,9 @@ public class OrganizationUserDetailsService implements UserDetailsService {
                 FROM tradesphere.users u JOIN tradesphere.organizations o ON o.id = u.organization_id
                 WHERE lower(u.username) = :username
                 """, Map.of("username", username.strip().toLowerCase(Locale.ROOT)), (rs, row) ->
-                new CatalogUser(rs.getObject("id", UUID.class), rs.getObject("organization_id", UUID.class),
+                new OrganizationUser(rs.getObject("id", UUID.class), rs.getObject("organization_id", UUID.class),
                         rs.getString("organization_name"), rs.getString("username"), rs.getString("password_hash"),
-                        rs.getBoolean("can_write_catalog"), rs.getBoolean("enabled")));
+                        rs.getBoolean("can_write_catalog"), rs.getBoolean("can_write_inventory"), rs.getBoolean("enabled")));
         return users.stream().findFirst().orElseThrow(() -> new UsernameNotFoundException("Invalid credentials"));
     }
 }
