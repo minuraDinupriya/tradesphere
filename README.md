@@ -6,11 +6,11 @@ The system will manage products, warehouses, stock receipts, inventory availabil
 
 ## Current status
 
-TRD-6, TRD-13, and TRD-15 are merged. TRD-16 adds tenant-isolated customer management and one exact LKR selling price per product, with separate customer/price write permissions. Existing catalog, warehouse, receiving, balance, and movement workflows remain covered by regression tests. Orders, taxes, payments, invoices, credit, multi-currency, full identity administration, and deployment remain excluded. This is a local portfolio implementation, not a production-ready service. PR/verification evidence is recorded in the [learning journal](docs/LEARNING_JOURNAL.md).
+TRD-6, TRD-13, TRD-15, and TRD-16 are merged. TRD-17 adds pending multi-item orders with creation-time LKR snapshots and atomic, retry-safe stock reservation. Existing catalog, customer, pricing, warehouse, receiving, balance, and movement workflows remain regression coverage. Cancellation, fulfillment, shipping, payments, partial orders, backorders, taxes, invoices, credit, multi-currency, full identity administration, and deployment remain excluded. Confirmed reservations remain held until future lifecycle work exists. This is a local portfolio implementation, not a production-ready service; actual evidence is in the [learning journal](docs/LEARNING_JOURNAL.md).
 
 ## Technical baseline
 
-Java 21 LTS, Spring Boot 4.1.2 with Spring Security/Validation, Maven Wrapper, React 19 with TypeScript and Vite 8, PostgreSQL 18.6, Flyway, Docker Compose, and GitHub Actions CI. The backend is a modular monolith; Catalog/prices, minimal Identity, warehouse/receiving Inventory, and customers within Ordering are implemented. Order behavior and a general Audit capability remain planned. See the [customer/pricing decision](docs/decisions/0004-customers-and-sales-pricing.md).
+Java 21 LTS, Spring Boot 4.1.2 with Spring Security/Validation, Maven Wrapper, React 19 with TypeScript and Vite 8, PostgreSQL 18.6, Flyway, Docker Compose, and GitHub Actions CI. The backend is a modular monolith; Catalog/prices, minimal Identity, warehouse/receiving/reservation Inventory, and customer/pending-confirmed Ordering are implemented. Remaining order lifecycle and general Audit remain planned. See the [customer/pricing decision](docs/decisions/0004-customers-and-sales-pricing.md) and [order/reservation decision](docs/decisions/0005-order-reservation.md).
 
 See [architecture](docs/ARCHITECTURE.md), the [foundation decision](docs/decisions/0001-engineering-foundation.md), the [catalog/security decision](docs/decisions/0002-product-catalog-and-session-access.md), and the [inventory decision](docs/decisions/0003-warehouse-inventory.md) for rationale and open choices. Dependency versions are recorded in the POM and npm lockfile; later domain design remains provisional.
 
@@ -45,6 +45,8 @@ For the first account only, edit the ignored root `.env`: set `BOOTSTRAP_ENABLED
 **Upgrading an existing database:** V4 gives existing users `can_write_inventory=false`; catalog editors do not silently gain inventory write access. A database owner must explicitly grant that flag to a chosen organization-bound account, then the user must sign out and in to refresh their session. See [inventory permission provisioning](docs/api/INVENTORY.md#permission-provisioning) for suggested SQL; that grant was not executed on existing development accounts by the agent.
 
 V5 similarly defaults `can_write_customers` and `can_write_prices` to false for existing accounts. Explicit fresh-empty-database bootstrap now creates the initial editor with all four write permissions. Select grants deliberately using the [sales permission guide](docs/api/CUSTOMERS_AND_PRICING.md#errors-and-permission-provisioning), then sign out/in. No existing development user's permissions were changed by the agent. Prices start unset; zero is an explicit price, and extra decimal places are rejected rather than rounded.
+
+V6 adds a fifth, independent `can_write_orders` flag defaulting false for existing users. Fresh-empty-database bootstrap grants it to the initial editor; existing users require an explicit owner grant and sign-out/in. See [order setup and API](docs/api/ORDERS.md#errors-setup-and-exclusions). Older browser-test databases likewise need deliberate provisioning or a fresh disposable database; TRD-17 uses `tradesphere_trd17_e2e` rather than modifying old test accounts.
 
 ```powershell
 Set-Location backend
@@ -120,6 +122,7 @@ Tenant-owned data must be isolated by organization, and authorization must be en
 - [Catalog API](docs/api/PRODUCT_CATALOG.md): authentication, requests, pagination, validation, and errors.
 - [Inventory API](docs/api/INVENTORY.md): warehouse management, receipt retry behavior, balances, history, and separate write permission.
 - [Customer/pricing API](docs/api/CUSTOMERS_AND_PRICING.md): customer fields, exact LKR decimal strings, edit versions, and sales permission provisioning.
+- [Order API](docs/api/ORDERS.md): pending creation, immutable snapshots, confirmation, retry behavior, atomic reservation, and order permission setup.
 - [Project context](docs/PROJECT_CONTEXT.md): business scenario, learning goals, and assumptions.
 - [Requirements](docs/REQUIREMENTS.md): scope, business rules, and acceptance expectations.
 - [Architecture](docs/ARCHITECTURE.md): proposed design, module ownership, and unresolved choices.

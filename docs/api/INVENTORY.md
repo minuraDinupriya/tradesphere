@@ -50,7 +50,7 @@ Filters are optional. Balance search matches product name/SKU and warehouse name
 
 All lists use `{items, totalElements, page, size, totalPages}`. Page is zero-based, `page >= 0`, `size` 1–100 (default 20), `q` maximum 100 characters. Parameters are bound and search wildcards escaped.
 
-Balances contain warehouse/product IDs and current labels/status, `onHand`, `reserved`, generated `available`, and `updatedAt`. Only existing balance pairs are listed; untouched combinations are not synthesized as zero rows. Receipts start reserved at zero and do not change it thereafter; there is no reservation API in this ticket.
+Balances contain warehouse/product IDs and current labels/status, `onHand`, `reserved`, generated `available`, and `updatedAt`. Only existing balance pairs are listed; untouched combinations are not synthesized as zero rows. Receipts start a new balance with reserved zero and preserve existing reservations. [TRD-17 order confirmation](ORDERS.md) now increases reserved without changing on-hand or receipt movements; no direct arbitrary reservation-edit endpoint exists.
 
 Movements contain `id`, `requestId`, warehouse/product IDs and current labels/unit, positive `quantity`, `reference`, `note`, `receivedBy` (user ID), `receivedByUsername`, and `receivedAt`. Application endpoints only append/read receipts. Labels reflect current master records; this is not a historical label snapshot or a tamper-proof database audit system.
 

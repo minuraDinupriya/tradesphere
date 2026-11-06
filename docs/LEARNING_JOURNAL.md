@@ -196,7 +196,7 @@ Hosted verification: [initial run 42227320592](https://github.com/minuraDinupriy
 
 **Date and Jira ticket**
 
-2026-11-06 (Asia/Colombo). [TRD-16](https://minuraranaweera.atlassian.net/browse/TRD-16), branch `feature/TRD-16-customer-sales-pricing`, from `3f49db4`. Commits: backend `d53bbc1`, frontend/tests `b40d79e`, documentation `4c0e654`, browser regression fix `15f29f7`. [PR #4](https://github.com/minuraDinupriya/tradesphere/pull/4) is open and unmerged. The actual Jira ticket and supplied design guidelines were read first. The developer approved the choices in [decision 0004](decisions/0004-customers-and-sales-pricing.md). Implementation and verification are established below; merge and demonstrated understanding remain separate pending states. The completion response begins the requested interactive lesson and waits for the developer's answer before advancing.
+2026-11-06 (Asia/Colombo). [TRD-16](https://minuraranaweera.atlassian.net/browse/TRD-16), branch `feature/TRD-16-customer-sales-pricing`, from `3f49db4`. Commits: backend `d53bbc1`, frontend/tests `b40d79e`, documentation `4c0e654`, browser regression fix `15f29f7`. Update during TRD-17: [PR #4](https://github.com/minuraDinupriya/tradesphere/pull/4) is merged on main as `50ff58d`; earlier review-pending notes refer to that report. The actual Jira ticket/design guidelines were read first; approved choices are in [decision 0004](decisions/0004-customers-and-sales-pricing.md). Demonstrated understanding remains unverified; beginning a lesson is not evidence of mastery.
 
 **What We Built**
 
@@ -248,3 +248,63 @@ Senior self-review examined tenant predicates, default-deny security routes, per
 
 1. Trace `"1234.56"` from the React input through JSON, deserialization, `BigDecimal`, and JDBC. Explain where precision could be lost if a number conversion were inserted.
 2. Predict two simultaneous edits using price version 0, then explain the repository SQL and integration assertion proving one winner. These are proposed learner exercises; understanding is not yet demonstrated.
+
+## 2026-11-06 — TRD-17: Order creation and atomic reservation
+
+**Date and Jira ticket**
+
+2026-11-06 (Asia/Colombo). [TRD-17](https://minuraranaweera.atlassian.net/browse/TRD-17), branch `feature/TRD-17-order-stock-reservation`, from merged TRD-16/main `50ff58d`. Actual Jira requirements were retrieved before implementation. Commits: backend `c72fb2b`, useful stock conflicts `d63849f`, frontend/tests `c6c1d8f`. PR/hosted evidence is recorded when available; human merge approval and demonstrated understanding are separate states.
+
+**What We Built**
+
+Immutable pending multi-item orders for one customer/warehouse, server-owned LKR price/label snapshots and exact totals, list/detail/create UI, atomic confirmation, and a separate stock-reservation ledger. Same-request creation and same-order confirmation can be retried without duplicating their effects. Only an independent order-write permission permits mutations; existing users receive no automatic grant. Cancellation, fulfillment, shipping, payments, partial orders, and backorders were not implemented. Confirmed reservations remain held until a future lifecycle operation exists. See [API](api/ORDERS.md).
+
+**Concepts I Should Understand**
+
+- **Atomicity versus concurrency:** a transaction groups every item's reservation and the order status, so they commit together or roll back. Conditional SQL additionally prevents distinct orders from both claiming the same remaining stock. A transaction alone does not make an unlocked read/overwrite safe.
+- **Locks and ordering:** an order-row update lock serializes repeated confirmations. Warehouse/customer/product share locks preserve eligibility; all product locks precede balance writes, and UUID order is consistent. This reduces deadlock cycles without claiming arbitrary future operations cannot deadlock.
+- **Idempotency:** confirmation's order ID identifies one transition; the locked confirmed state returns the saved result. Creation separately uses an organization/request key and canonical payload comparison. A disabled button alone would not protect retries or multiple tabs.
+- **Snapshots:** saving price/SKU/name/unit at creation preserves the quote after catalog changes. Exact line totals are generated in PostgreSQL, and the server sums BigDecimal values; widened numeric totals and JSON strings avoid overflow/JavaScript rounding. The earlier entry explains basic decimal money.
+
+**Real-World Analogy**
+
+A hardware-store clerk puts a numbered order slip beside the stock ledger. Confirming earmarks bolts and washers together. If washers are short, neither item is committed to that order. Two clerks must update the same ledger entry safely; showing an already stamped slip cannot earmark the goods again. Every clerk visits shared ledger entries in the same order to avoid each holding a page the other needs.
+
+**How It Works Internally**
+
+1. React sends customer/warehouse/product quantities and one creation request ID; the backend supplies prices, organization, actors, and state. [OrderController](../backend/src/main/java/com/tradesphere/ordering/OrderController.java) validates the boundary; [OrderRules](../backend/src/main/java/com/tradesphere/ordering/OrderRules.java) rejects duplicate/invalid lines and orders UUIDs consistently.
+   The real [creation page](../frontend/src/features/ordering/OrderFormPage.tsx), [API client](../frontend/src/features/ordering/orderApi.ts), and [detail page](../frontend/src/features/ordering/OrderDetailsPage.tsx) retain retry identities and display the saved snapshot without frontend monetary arithmetic.
+2. [OrderService](../backend/src/main/java/com/tradesphere/ordering/OrderService.java) locks source eligibility for creation and snapshots current [CatalogProductAccess](../backend/src/main/java/com/tradesphere/catalog/CatalogProductAccess.java) values. [OrderRepository](../backend/src/main/java/com/tradesphere/ordering/OrderRepository.java) writes headers/items using parameterized organization-scoped SQL.
+3. Confirmation locks the order `FOR UPDATE`, replays confirmed state immediately, then locks eligibility before calling [InventoryOrderAccess](../backend/src/main/java/com/tradesphere/inventory/InventoryOrderAccess.java). Its `MANDATORY` transaction propagation requires the surrounding order transaction. Each balance update increases reserved only if current available >= requested; any failed line throws and rolls everything back.
+4. [V6](../backend/src/main/resources/db/migration/V6__create_orders_and_stock_reservations.sql) reinforces tenant/order/warehouse/item/balance/actor relationships. Reservation rows and the confirmed header commit together; on-hand and physical receipt movements remain unchanged.
+
+**Engineering Decisions**
+
+Retain JDBC/PostgreSQL and public in-process module operations. Combine an order lock with conditional stock updates instead of adding optimistic retry orchestration, serializable isolation, or a broker/cache. Canonical UUID text ordering agrees with PostgreSQL even where Java UUID's signed comparison differs. Use separate reservations rather than mislabel allocations as receipts. Snapshots occur at creation and are never repriced on confirmation; quote expiry/amendment remains future policy. Bounds of 100 distinct lines and existing safe whole-unit quantities keep work finite; money stays exact. [Decision 0005](decisions/0005-order-reservation.md) records alternatives and limitations.
+
+**Problems and Debugging**
+
+- The first backend verification stopped at test compilation because an in-progress API test lacked its item lookup helper. Completed the helper; later complete suites passed. This was a test-code compile error, not a passing or skipped test run.
+- Initial new component tests had five failures because exact label queries omitted the required-field asterisk. Replaced them with the actual accessible quantity-control queries; focused and complete suites then passed. No customer incident is invented.
+- A simulated PostgreSQL trigger error intentionally fails the second reservation insertion. A temporary sequence proves two attempts occurred (sequence increments survive rollback), while committed order/balance/ledger assertions prove the business transaction rolled back. Fixture-scoped trigger/function/sequence are removed afterward; no production failure hook was added.
+- Senior review found no blocking production issue but identified a database-evidence gap. Added direct-SQL tests proving the named composite foreign keys reject foreign customer/warehouse/actors and wrong reservation warehouse/item references, rather than assuming API-denial tests established database constraints.
+- UI review found that a raw UUID in insufficient-stock errors did not identify a visible order line. Inventory now throws a typed stock exception carrying the product ID; Ordering translates it to its saved SKU/name without parsing error text. The API regression asserts those labels and whole-order rollback. The first new browser run also exposed an ambiguous customer selector; an explicit combobox inside the order choices group fixed the test.
+
+Executed backend verification: `.\mvnw.cmd -B -ntp verify` passed **15 unit + 52 real PostgreSQL/API integration tests**, none skipped, including receipt/confirmation contention, reverse item order, same/distinct-order races, snapshots, retries, rollback, and foreign-key rejection. Frontend `npm run lint`, `npm run test` (**45 component tests**), and `npm run build` passed. `npm run test:e2e` passed **5 real Edge workflows** after the customer-locator correction: the new order journey verifies saved prices after a catalog change, committed confirmation with a lost response, same-order retry, and correct physical/reserved/available balances. Hosted and later post-review outcomes are recorded when executed in this entry and [COMMAND_LOG.md](COMMAND_LOG.md); they are not inferred from compilation.
+
+Independent agent review and self-review are engineering checks, not external human approval. Limits include no general audit/tamper-proof database-role policy, reservation expiry/release, lifecycle terminal actions, quote expiry, full session revocation, exhaustive accessibility/load/failover testing, or production deployment. Pending creation retry state does not survive navigation/reload; reconcile the list before replacement. No learner understanding is claimed.
+
+The final local backend run after typed SKU/name stock-conflict feedback passed all 67 tests again. [Actual browser screenshots](evidence/TRD-17/README.md) were inspected, including 390px detail/table behavior. Hosted execution is still a separate check, not inferred from the passing local runs.
+
+**Interview Questions**
+
+1. **Why is `@Transactional` insufficient by itself to prevent overselling?** Competing transactions can read the same old availability; the write must lock/recheck or conditionally update current stock. This feature uses conditional reserved increments.
+2. **Why lock the order as well as stock?** Stock protection coordinates different orders; the order lock serializes repeated confirmation of the same order so its effect occurs once.
+3. **What happens when the last item is unavailable?** The exception escapes the transaction, rolling back earlier balance changes, reservation rows, and the status change. Pending state remains.
+4. **Why acquire locks in a consistent order?** Opposite lock sequences can create circular waits. All product eligibility locks precede deterministically ordered balance writes, consistent with current receipt operations.
+5. **Why snapshot prices when creating an order?** A later catalog price change must not silently alter the saved quote. Confirmation reserves the saved quantities using the saved prices rather than recalculating from current master data.
+
+**What I Should Practise**
+
+1. Trace one two-item confirmation from React to SQL. Explain which statement prevents overselling, which lock prevents duplicate confirmation, and where rollback is triggered. Start with atomicity before advancing to other ACID properties.
+2. Predict two orders each requesting four units when only five are available, then predict two retries of the same order. Explain the final on-hand/reserved/available numbers and compare with the PostgreSQL tests. These are suggested exercises, not demonstrated student achievements.
