@@ -1,30 +1,33 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import { errorMessage } from '../shared/api/http'
+import { useAuth } from '../features/identity/useAuth'
 
 export function AppLayout() {
-  return (
-    <div className="app-shell">
-      <a className="skip-link" href="#main-content">Skip to content</a>
-      <aside className="sidebar">
-        <NavLink className="brand" to="/" aria-label="TradeSphere home">
-          <span className="brand-mark" aria-hidden="true">T</span>
-          TradeSphere
-        </NavLink>
-        <p className="workspace-label">Lanka Distribution Group</p>
-        <nav aria-label="Main navigation">
-          <NavLink className="nav-link" to="/" end>Overview</NavLink>
-        </nav>
-        <p className="sidebar-note">Fictional business · Demo workspace</p>
-      </aside>
-      <div className="workspace">
-        <header className="topbar">
-          <span>Business workspace</span>
-          <span className="status-label">In development</span>
-        </header>
-        <main id="main-content" tabIndex={-1}>
-          <Outlet />
-        </main>
-        <footer>TradeSphere · A solo software engineering portfolio project</footer>
-      </div>
+  const { user, signOut } = useAuth()
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function logout() {
+    setPending(true); setError(null)
+    try { await signOut() }
+    catch (failure) { setError(errorMessage(failure)) }
+    finally { setPending(false) }
+  }
+
+  return <div className="app-shell">
+    <a className="skip-link" href="#main-content">Skip to content</a>
+    <aside className="sidebar">
+      <NavLink className="brand" to="/products" aria-label="TradeSphere home"><span className="brand-mark" aria-hidden="true">TS</span>TradeSphere</NavLink>
+      <div className="organization-card"><span className="eyebrow">Workspace</span><strong>{user?.organizationName}</strong></div>
+      <p className="nav-section-label">Workspace</p>
+      <nav aria-label="Main navigation"><NavLink className="nav-link" to="/products"><span aria-hidden="true">◇</span> Products</NavLink></nav>
+      <p className="sidebar-note">TradeSphere<br />Fictional B2B commerce platform</p>
+    </aside>
+    <div className="workspace"><header className="topbar"><div><span className="small muted">{user?.organizationName}</span><p className="topbar-title">Product workspace</p></div>
+      <div className="account-menu"><div><strong>{user?.username}</strong><span className="small muted">{user?.canWriteCatalog ? 'Catalog editor' : 'Read-only access'}</span></div>
+        <button className="button secondary" disabled={pending} onClick={() => void logout()}>{pending ? 'Signing out…' : 'Sign out'}</button></div></header>
+      <main id="main-content" tabIndex={-1}>{error && <p role="alert" className="error-panel">{error}</p>}<Outlet /></main>
     </div>
-  )
+  </div>
 }

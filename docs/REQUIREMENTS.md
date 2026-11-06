@@ -1,11 +1,11 @@
 # Requirements
 
-Status: initial requirements baseline. All capabilities are **planned**, not implemented. Specified business rules below come from the project brief; proposed details and open questions are labeled separately.
+Status: catalog and minimal session access are implemented in TRD-13 changes; other business capabilities remain **planned**. Specified rules below come from the project brief and the developer's TRD-13 scope approval; proposals and open questions are labeled separately. Execution evidence belongs in the learning journal, not inferred from this requirements list.
 
 ## MVP capabilities
 
-- **Identity and access:** authenticate users and enforce backend permissions and organization scope. Exact roles and authentication flow remain unresolved.
-- **Catalog:** manage products needed for stock and order workflows. Product fields, identifiers, and archival behavior remain to be agreed.
+- **Identity and access:** TRD-13 uses minimal session sign-in, one organization per user, and catalog read-only/read-write permissions. Full roles/membership administration remain unresolved and out of scope.
+- **Catalog:** TRD-13 supports creation, retrieval, editing, list/search/category/status filters, and bounded pagination. Approved fields: organization-unique SKU, name, optional description, category, unit of measure, and active status. Pricing, tax, images, stock quantities, and deletion are deferred. See [API rules and limits](api/PRODUCT_CATALOG.md).
 - **Warehouses and receipts:** represent the three warehouses and record stock receipts that increase the appropriate warehouse's on-hand balance. Receipt correction behavior is unresolved.
 - **Inventory availability:** show on-hand, reserved, and available quantities by organization, warehouse, and product.
 - **Customers:** manage the customer records needed to place B2B orders. Exact fields and ownership details remain unresolved.
@@ -66,4 +66,4 @@ The initial MVP has no backorders, partial fulfillment, real payments, or multi-
 
 ## Decisions needed before affected features
 
-Resolve user roles/membership and authentication; product/customer fields; pricing, currency, rounding and tax scope; receipt corrections and stock adjustments; cancellation eligibility; retry response semantics; and audit contents. Do not silently turn these open questions into implemented business rules.
+TRD-13 resolves the initial product fields, SKU uniqueness, minimal session sign-in, and organization-scoped read/write permissions; [decision 0002](decisions/0002-product-catalog-and-session-access.md) records the approved scope and implementation choices. Before affected later features, resolve full membership/role administration, customer fields, pricing/currency/rounding/tax, receipt corrections/adjustments, cancellation eligibility, order retry semantics, and audit contents. Do not silently turn open questions into implemented rules.

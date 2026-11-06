@@ -15,7 +15,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Runs against PostgreSQL configured by the same environment as the application. */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "tradesphere.bootstrap.enabled=false")
 class FoundationIT {
 
     @LocalServerPort
@@ -36,6 +37,7 @@ class FoundationIT {
         assertThat(response.body())
                 .contains("\"status\":\"UP\"")
                 .doesNotContain("\"components\"", "\"details\"", "\"db\"");
+        assertThat(get("/actuator/health/readiness").statusCode()).isEqualTo(200);
     }
 
     @Test
@@ -50,9 +52,9 @@ class FoundationIT {
     }
 
     @Test
-    void configurationEndpointsAreNotExposed() throws Exception {
-        assertThat(get("/actuator/env").statusCode()).isEqualTo(404);
-        assertThat(get("/actuator/configprops").statusCode()).isEqualTo(404);
+    void configurationEndpointsAreNotPubliclyAccessible() throws Exception {
+        assertThat(get("/actuator/env").statusCode()).isEqualTo(401);
+        assertThat(get("/actuator/configprops").statusCode()).isEqualTo(401);
     }
 
     private HttpResponse<String> get(String path) throws Exception {

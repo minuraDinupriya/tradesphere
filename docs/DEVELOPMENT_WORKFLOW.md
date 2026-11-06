@@ -10,16 +10,16 @@ For planned feature deliverables, agree on the outcome and arrange a real Jira k
 
 ## Implementation cycle
 
-1. Read the relevant requirements and identify open decisions that affect the deliverable.
+1. Read the relevant requirements and acceptance criteria, identify open decisions, and briefly summarize important planned test scenarios before implementation. Consider positive, negative, boundary, authorization, and failure cases; proceed without unnecessary approval checkpoints.
 2. Explain significant design choices, alternatives, and tradeoffs in simple English. Resolve consequential business questions before encoding behavior.
 3. Use a branch following the conventions below once Git is established; include the real Jira key for Jira-linked work.
-4. Implement a small working slice, including migrations and tests where relevant. Keep the developer able to follow request flow and business rules.
+4. Implement a small working slice with appropriate automated tests alongside production code. Prefer test-driven development for well-defined business rules where practical. Keep the developer able to follow request flow and business rules.
 5. Run available validation appropriate to the change. Inspect the diff for correctness, security, accidental scope changes, and documentation drift.
 6. Keep commits small and understandable, with messages describing the resulting behavior.
 7. Open a pull request using the title conventions and template below, linking the Jira deliverable when applicable. Describe the problem, resulting behavior, key decisions, executed validation, and remaining limitations.
 8. Perform an honest review, address findings, and follow the agreed merge process. Do not invent a reviewer or approval for a solo project.
 
-Current authorization covers TRD-6 engineering foundation only. Do not start TRD-13, business functionality, authentication, production deployment, or other tickets without the developer's approval.
+Current authorization covers TRD-13 product catalog and the explicitly approved minimal session/organization access boundary. Do not start unrelated business features, full identity administration, production deployment, or other tickets without the developer's approval. TRD-6 is already merged.
 
 ## File and code naming
 
@@ -109,14 +109,20 @@ Do not merge automatically. Obtain the developer's approval before merging; prep
 
 ## Testing expectations
 
+Follow the concise [test strategy](testing/TEST_STRATEGY.md). Derive meaningful scenarios from the current Jira feature's requirements and acceptance criteria, rather than generating repetitive manual test-case documents.
+
 - Unit tests should exercise meaningful business rules and invalid cases.
 - PostgreSQL integration tests should verify migrations, constraints, rollback behavior, stock reservations, concurrent order transitions, and organization isolation.
 - Security tests should cover unauthorized roles and cross-organization reads/writes, including known record identifiers.
 - API and frontend tests should cover relevant validation and important user journeys. Choose an appropriate framework when the application exists.
+- Frontend component tests must exercise meaningful user interactions. Add end-to-end browser tests for critical complete workflows across the UI, backend, and database.
+- Add reusable regression tests for important defects, including a scenario that fails for the defective behavior where practical.
 - Concurrency tests should coordinate competing requests/transactions and assert committed outcomes and final balances, rather than rely only on timing sleeps.
 - Documentation-only changes need content and link checks; do not add application tests for text edits.
 
 Report what actually ran and its result. Distinguish automated tests, builds, type checks, lint checks, manual checks, skipped checks, and unavailable tooling. An unexecuted or unavailable check is not a pass. Re-run relevant checks after fixes; broaden testing when risk or evidence warrants it.
+
+Run relevant tests before opening a PR. In the PR, document exact commands, results, and uncovered risks. Never invent test results or claim unexecuted tests passed. Routine tests are part of the feature's Definition of Done; do not create separate Jira tickets for them.
 
 ## Definition of done for an implementation deliverable
 
@@ -152,3 +158,5 @@ After a significant task, report concisely:
 - Remaining actions, including any pending merge approval.
 
 Keep the report proportional to the task and do not invent missing administrative details.
+
+End every development task with a concise Markdown **Command Execution Report** table containing the exact important commands executed, working directory, purpose/why, actual success/failure, and important errors/resolutions. Group repetitive runs and explain unfamiliar flags where useful. Clearly separate suggested commands from executed commands. For significant milestones, update [COMMAND_LOG.md](COMMAND_LOG.md); include a brief analogy for commands that introduce an important engineering concept.

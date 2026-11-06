@@ -30,7 +30,7 @@ Think of preparing a hardware store before opening: the backend is the service c
 1. [compose.yaml](../compose.yaml) starts PostgreSQL with environment configuration, a loopback port, readiness checks, and persistent storage.
 2. [TradeSphereApplication](../backend/src/main/java/com/tradesphere/TradeSphereApplication.java) starts Boot. [application.properties](../backend/src/main/resources/application.properties) loads local configuration; Boot builds the data source and Flyway applies [V1](../backend/src/main/resources/db/migration/V1__create_application_schema.sql) before startup completes. Flyway history is explicitly anchored in `public`.
 3. Actuator serves health over HTTP. [FoundationIT](../backend/src/test/java/com/tradesphere/FoundationIT.java) starts the app on a random port, checks live HTTP behavior, and queries the actual PostgreSQL schema/history via injected `JdbcTemplate`.
-4. [main.tsx](../frontend/src/main.tsx) mounts React and the browser router. [App.tsx](../frontend/src/App.tsx) chooses the route; [AppLayout](../frontend/src/app/AppLayout.tsx) supplies navigation and renders its `Outlet`; [DashboardPage](../frontend/src/features/dashboard/DashboardPage.tsx) renders the clearly labeled preview. Unknown routes offer a return link.
+4. [main.tsx](../frontend/src/main.tsx) mounts React and the browser router. [App.tsx](../frontend/src/App.tsx) chooses the route; [AppLayout](../frontend/src/app/AppLayout.tsx) supplies navigation and renders its `Outlet`; the [historical DashboardPage at ccb0dc2](https://github.com/minuraDinupriya/tradesphere/blob/ccb0dc2/frontend/src/features/dashboard/DashboardPage.tsx) rendered the clearly labeled preview (replaced by real catalog screens in TRD-13). Unknown routes offered a return link.
 5. [CI](../.github/workflows/ci.yml) runs backend/Compose and frontend jobs independently. It generates a disposable database password, runs validation, and cleans up its own CI volume.
 
 **Engineering Decisions**
@@ -71,3 +71,64 @@ Non-fatal Maven repository-metadata and Mockito agent warnings appeared during s
 
 1. Trace a route from `main.tsx` through `AppLayout` to `DashboardPage`, then add a temporary local route and a navigation test. Treat this as an exercise, not completed project scope.
 2. In a disposable PostgreSQL database, inspect `search_path` and compare a qualified query with an unqualified one. Explain how a schema matching the user name changes lookup; do not alter the project database for the exercise.
+
+## 2026-11-06 — TRD-13: End-to-end product catalog
+
+**Date and Jira ticket**
+
+2026-11-06 (Asia/Colombo). TRD-13, with branch `feature/TRD-13-product-catalog`, started from merged TRD-6 (`5facf9a`). Jira URL is not known. Commits: backend `40482c6`, frontend/browser validation `ae236b8`, documentation `20b64f4`. [PR #2](https://github.com/minuraDinupriya/tradesphere/pull/2) is open and unmerged.
+
+**What We Built**
+
+Organization-scoped product create/list/search/filter/pagination/detail/edit across PostgreSQL, Spring Boot, and React. The developer explicitly approved minimal session sign-in and catalog read/write permissions for this slice, plus SKU/name/description/category/unit/active fields. There are no price, stock, deletion, registration, or account-administration features. The [design decision](decisions/0002-product-catalog-and-session-access.md) records the inspected Figma reference and scope/UX deviations.
+
+**Concepts I Should Understand**
+
+- **Authentication, authorization, and tenancy:** sign-in identifies the user; authorities determine allowed operations; the user's server-owned organization scopes every catalog query. Hiding an Edit link is a convenience, not the security boundary.
+- **Sessions and CSRF:** an HttpOnly cookie identifies a server-side session. A separate CSRF token helps establish that a browser mutation originated from this application's flow. It is not a replacement for permissions. The client fetches a fresh token after authentication rotates it.
+- **Database constraints versus prechecks:** two requests can both pass an application uniqueness check. PostgreSQL's organization/SKU unique index makes the final decision atomically.
+- **Optimistic concurrency:** the update SQL compares the version read by the editor and increments it in the same statement. A stale edit gets 409 so it cannot silently erase somebody else's change.
+- **Validation and DTOs:** request records describe editable inputs; response records omit organization authority and password data. Bean Validation rejects bad requests; database checks reinforce integrity.
+- **React request state:** forms retain values on failure, report field-linked errors, and disable pending submissions. Superseded reads are aborted. API communication is separate from presentation; the app does not pretend unimplemented controls work.
+- **Test layers:** unit tests isolate rules, PostgreSQL/API tests exercise real integrity/security, and browser tests connect the actual UI, server, and database. See the [earlier foundation concepts](#2026-11-06--trd-6-engineering-foundation) for Maven, Docker, and basic dependency injection.
+
+**Real-World Analogy**
+
+A hardware-store clerk's staff badge establishes which distributor they work for and whether they may edit its catalog. Every ledger lookup includes that distributor, even if the clerk knows another store's product number. A product's version is like a numbered revision slip: if another clerk has already submitted a newer slip, an old edit must be reconciled rather than overwrite it.
+
+**How It Works Internally**
+
+1. [V2](../backend/src/main/resources/db/migration/V2__create_organization_users.sql) adds organizations/users; [V3](../backend/src/main/resources/db/migration/V3__create_products.sql) adds products, constraints, and indexes. No credentials are seeded by migrations.
+2. [SecurityConfiguration](../backend/src/main/java/com/tradesphere/identity/SecurityConfiguration.java) enforces permissions/CSRF. [OrganizationUserDetailsService](../backend/src/main/java/com/tradesphere/identity/OrganizationUserDetailsService.java) loads the organization and BCrypt hash; [SessionController](../backend/src/main/java/com/tradesphere/identity/SessionController.java) returns safe session/CSRF DTOs. Bootstrap is explicit and only acts on an empty user database.
+3. [ProductController](../backend/src/main/java/com/tradesphere/catalog/ProductController.java) validates input and derives organization scope from the principal. [ProductService](../backend/src/main/java/com/tradesphere/catalog/ProductService.java) normalizes values and owns transactions; [ProductRepository](../backend/src/main/java/com/tradesphere/catalog/ProductRepository.java) binds SQL parameters, applies tenant predicates, and performs version-checked updates. [ApiExceptionHandler](../backend/src/main/java/com/tradesphere/catalog/ApiExceptionHandler.java) maps expected failures to useful Problem Details.
+4. [AuthProvider](../frontend/src/features/identity/AuthProvider.tsx) tracks sign-in. The [HTTP client](../frontend/src/shared/api/http.ts) supplies cookies/CSRF tokens; [productApi](../frontend/src/features/catalog/productApi.ts) separates API calls from [list](../frontend/src/features/catalog/ProductListPage.tsx), [form](../frontend/src/features/catalog/ProductFormPage.tsx), and [detail](../frontend/src/features/catalog/ProductDetailsPage.tsx) components.
+
+**Engineering Decisions**
+
+Retain JDBC/immutable records rather than adding an ORM for this slice. Use one organization per user and minimal read/write authorities rather than inventing a full role hierarchy. Use session cookies rather than adding JWT lifecycle/storage complexity. Bound pagination and literal substring search avoid unnecessary search infrastructure. Category/unit remain text labels. Use repeatable-read for a consistent list/count snapshot, not a promise that separate pages never shift under edits. See [decision 0002](decisions/0002-product-catalog-and-session-access.md) for alternatives and limitations.
+
+**Problems and Debugging**
+
+- Windows held the existing jar open in the earlier backend process; compilation passed but repackaging failed. Inspected and stopped that specific process, then full verification passed. A later clean npm install similarly found a native binding held by the earlier Vite server; process identity was checked before stopping it. These were tool/process lifecycle issues, not product-domain bugs.
+- The first frontend build caught unsupported `exact` options on Testing Library role queries; component tests alone had not caught the TypeScript issue. Removed the unsupported options and retained the meaningful interactions. Including E2E files in type checking then exposed missing DOM types; added them and rebuilt successfully.
+- Lint identified unnecessary synchronous state resets in effects. Moved resets to the initiating filter/retry/reload events, and keyed product routes so a new identifier gets fresh state. Existing component tests cover loading, retries, and stale-edit recovery; no failing product incident is invented.
+- PostgreSQL/API tests deliberately exercise stale versions, simultaneous duplicate creation, literal search wildcards, and tenant tampering as reusable prevention/regression scenarios. They were not observed production incidents. TDD was not used for all of this implementation; scenario planning and tests accompanied the slice, with final execution evidence below.
+
+Verification actually executed: `.\mvnw.cmd -B -ntp verify` from `backend/` passed **4 unit + 12 integration tests**; `npm run lint`, `npm run test`, and `npm run build` from `frontend/` passed after the documented fixes (**11 component tests**). `npm run test:e2e` passed **2 real browser tests** using installed Edge and a separate PostgreSQL test database; this included desktop/mobile screenshots and a no-page-overflow check. Actionlint passed static CI validation. See [COMMAND_LOG.md](COMMAND_LOG.md) for exact commands, flags, directories, repeated-run results, and current hosted CI status.
+
+[Hosted CI run 42215790048](https://github.com/minuraDinupriya/tradesphere/actions/runs/42215790048) for implementation/documentation commit `20b64f4` completed successfully: frontend install/lint/tests/build/documentation checks, backend/PostgreSQL tests, real Chromium workflow, and disposable database cleanup all passed. This is separate evidence from local Edge verification. Developer review and merge approval remain outstanding.
+
+Uncovered risks: Firefox/Safari were not run; this is not exhaustive accessibility testing or production hardening. No benchmarks, inventory transactions, production deployment, or external reviewer approval are claimed.
+
+**Interview Questions**
+
+1. **Why include organization scope in every query?** Authentication alone does not constrain a product ID to that user's organization; the predicate prevents cross-tenant access even with a known foreign ID.
+2. **Why is a database unique index needed when the UI checks a SKU?** Concurrent requests can race between a check and an insert. The index enforces uniqueness at commit/statement execution regardless of the caller.
+3. **How does optimistic concurrency prevent lost updates?** `UPDATE ... WHERE version = :expectedVersion` allows only a request with the current version to change the row; one competing editor receives a conflict instead of overwriting the winner.
+4. **Why keep CSRF protection with cookie sessions?** Browsers attach cookies automatically, so a malicious site could attempt a mutation using them. A token bound to the legitimate session adds a check; it does not grant authorization.
+5. **Why use component tests and E2E tests?** Components give focused interaction/failure feedback; E2E tests catch integration failures across routing, CSRF, cookies, HTTP, and real persistence. Neither alone proves all behavior.
+
+**What I Should Practise**
+
+1. In your local fictional catalog, open the same product in two tabs, save one, and explain why the other receives 409. Inspect the request version and the SQL predicate before trying to resolve the conflict.
+2. Add a focused test for a new validation boundary in a temporary exercise branch, predict its failure, and implement the smallest fix. Explain whether it belongs in unit, API/PostgreSQL, or browser coverage. This is practice, not an additional approved feature.

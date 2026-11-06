@@ -30,12 +30,13 @@ Do not invent teammates, customer conversations, approvals, incidents, project h
 ## Known constraints and assumptions
 
 - **Specified:** three warehouses in the fictional business; the initial MVP uses one warehouse per order.
-- **Specified:** tenant-owned records must be isolated by organization. The exact membership and role model is unresolved.
+- **Specified:** tenant-owned records must be isolated by organization. TRD-13 implements one organization per user and catalog read/write permissions; full membership/role administration remains unresolved.
 - **Working assumption:** the initial demonstration will use one fictional distributor organization; tests should use at least two organizations to exercise isolation. This does not remove tenant boundaries.
 - **Working assumption:** inventory quantities are whole units initially. Fractional units and unit conversions need explicit agreement before implementation.
-- **Unresolved:** warehouse identities, product identifiers, pricing/currency/tax behavior, user roles, and customer-management details.
+- **Resolved for TRD-13:** UUID product IDs, case-insensitive organization-unique SKUs, the approved catalog fields, minimal session sign-in, and catalog read/write permissions. See [decision 0002](decisions/0002-product-catalog-and-session-access.md).
+- **Unresolved:** warehouse identities, pricing/currency/tax behavior, broader user roles, and customer-management details.
 - **Established for TRD-6:** initial dependency versions and foundation tooling; see [architecture](ARCHITECTURE.md). The supplied repository is `minuraDinupriya/tradesphere`; TRD-6 is the engineering foundation issue. Its Jira URL has not been supplied.
-- **Unresolved:** hosting and identity mechanism.
+- **Unresolved:** hosting and full identity lifecycle/membership administration beyond the initial session mechanism.
 
 These assumptions are proposals for discussion, not prior approved business decisions. Business behavior belongs in [requirements](REQUIREMENTS.md); technical proposals belong in [architecture](ARCHITECTURE.md).
 

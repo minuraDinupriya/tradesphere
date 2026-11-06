@@ -6,13 +6,13 @@ The system will manage products, warehouses, stock receipts, inventory availabil
 
 ## Current status
 
-TRD-6 establishes the engineering foundation: a Spring Boot health endpoint, PostgreSQL connectivity and Flyway schema migration, a React placeholder with routing/layout, automated checks, and a GitHub Actions CI workflow. Business features, authentication/authorization, tenant enforcement, Stitch designs, and deployment remain unimplemented. Do not use this foundation as a secured application.
+TRD-6 is merged. TRD-13 adds end-to-end Product Catalog Management: session sign-in, organization-scoped product creation/list/search/filter/pagination/detail/edit, validation, optimistic edit conflicts, and read/write permissions. The UI uses the supplied Figma Make catalog as visual inspiration; pricing, stock, deletion, full identity administration, other business modules, and deployment remain out of scope. This is a local portfolio implementation, not a production-ready service.
 
 ## Technical baseline
 
-Java 21 LTS, Spring Boot 4.1.2, Maven Wrapper, React 19 with TypeScript and Vite 8, PostgreSQL 18.6, Flyway, Docker Compose, and GitHub Actions CI. The backend is a modular monolith skeleton with Identity, Catalog, Inventory, Ordering, and Audit package boundaries. Spring Security will be introduced with authentication, not before.
+Java 21 LTS, Spring Boot 4.1.2 with Spring Security/Validation, Maven Wrapper, React 19 with TypeScript and Vite 8, PostgreSQL 18.6, Flyway, Docker Compose, and GitHub Actions CI. The backend is a modular monolith; Catalog and minimal Identity are implemented, while Inventory, Ordering, and Audit remain package boundaries only.
 
-See [architecture](docs/ARCHITECTURE.md) for rationale and open choices, and the [TRD-6 decision](docs/decisions/0001-engineering-foundation.md) for foundation choices. Dependency versions are recorded in the POM and npm lockfile; later domain design remains provisional.
+See [architecture](docs/ARCHITECTURE.md), the [foundation decision](docs/decisions/0001-engineering-foundation.md), and the [catalog/security decision](docs/decisions/0002-product-catalog-and-session-access.md) for rationale and open choices. Dependency versions are recorded in the POM and npm lockfile; later domain design remains provisional.
 
 ## Repository layout
 
@@ -40,13 +40,15 @@ Do not overwrite an existing `.env`. Keep its values unquoted; simple alphanumer
 
 In a second terminal:
 
+For the first account only, edit the ignored root `.env`: set `BOOTSTRAP_ENABLED=true`, choose a `BOOTSTRAP_USERNAME` (3–80 lowercase letters/numbers/dots/hyphens/underscores), a unique `BOOTSTRAP_PASSWORD` (at least 12 characters, at most 72 UTF-8 bytes), and `BOOTSTRAP_ORGANIZATION_NAME=Lanka Distribution Group`. No default password is committed. Bootstrap works only when the user table is empty; it creates one organization/catalog editor and never changes existing credentials. After successful startup, set `BOOTSTRAP_ENABLED=false` and remove the bootstrap password after storing it securely. Registration, password reset, and account administration are not included.
+
 ```powershell
 Set-Location backend
 .\mvnw.cmd -B -ntp verify
 .\mvnw.cmd spring-boot:run
 ```
 
-Spring reads the root `.env` when launched from `backend/` (or the repository root). Shell environment variables override file values. Flyway applies migrations before startup completes. Open [backend health](http://127.0.0.1:8080/actuator/health); a healthy response includes `"status":"UP"` and may list health group names. Only the health endpoint is exposed; component details remain hidden. There are no business APIs yet.
+Spring reads the root `.env` when launched from `backend/` (or the repository root). Shell environment variables override file values. Flyway applies migrations before startup completes. Open [backend health](http://127.0.0.1:8080/actuator/health); a healthy response includes `"status":"UP"`. `/actuator/health/readiness` becomes ready after startup/bootstrap completes. Health/component details remain hidden; other Actuator endpoints are not exposed. Product endpoints require a session; see the [API documentation](docs/api/PRODUCT_CATALOG.md).
 
 In a third terminal:
 
@@ -56,13 +58,13 @@ npm ci
 npm run dev
 ```
 
-Open [TradeSphere](http://127.0.0.1:5173/). Vite serves the UI and reserves `/api` proxying to port 8080 for future endpoints; the placeholder does not fetch business data. If you change `SERVER_PORT`, also update the proxy when API work begins. The UI is an independent foundation preview, not an implementation of the unprovided Stitch assets.
+Open [TradeSphere](http://127.0.0.1:5173/) and sign in with the account you provisioned. Vite proxies `/api` to port 8080; set `API_PROXY_TARGET` in the frontend terminal if using another backend address. The UI integrates with real product endpoints. No live Stitch export was supplied; the [design decision](docs/decisions/0002-product-catalog-and-session-access.md) records the inspected Figma reference and deliberate deviations.
 
 On Linux/macOS, use `./mvnw` instead of `.\mvnw.cmd`. Node and Compose commands are the same.
 
 ## Validation
 
-With PostgreSQL running, execute `./mvnw -B -ntp verify` from `backend/` (Windows: `.\mvnw.cmd -B -ntp verify`). Maven Failsafe runs `*IT` integration tests against the configured PostgreSQL database, checking migration history, connectivity, live HTTP health, and unexposed configuration endpoints. Use a disposable development/test database, never production. No business unit tests exist yet; `mvn test` alone does not run the integration suite.
+With PostgreSQL running, execute `./mvnw -B -ntp verify` from `backend/` (Windows: `.\mvnw.cmd -B -ntp verify`). It runs business unit tests and Failsafe `*IT` tests against real PostgreSQL: migrations, API behavior, validation, sessions/CSRF, organization isolation, duplicate SKUs, and competing updates. Fixtures use generated users/passwords and clean up only their own organizations. Use a development/test database, never production. `mvn test` alone does not run the integration suite.
 
 From `frontend/`:
 
@@ -72,9 +74,21 @@ npm run test
 npm run build
 ```
 
-Vitest and Testing Library cover the preview, route recovery, and skip link. The build also runs TypeScript checks. `npm run test:watch` supports interactive testing; `npm run preview` serves the production build locally.
+Vitest and Testing Library cover catalog interactions, permissions, loading/empty/error states, forms, and stale-edit recovery. The build also checks TypeScript for app and browser-test code. `npm run test:watch` supports interactive testing. `npm run preview` serves a static build locally but does not proxy the backend; full-stack local development uses `npm run dev`.
 
-[Foundation CI](.github/workflows/ci.yml) runs backend/Compose checks and frontend install/lint/tests/build on PRs targeting `main` and pushes to `main`. It creates a disposable database with a generated password and removes that CI volume afterward. No production deployment is configured. See the [learning journal](docs/LEARNING_JOURNAL.md) for actual verification evidence and limitations.
+For critical browser tests, use a separate database named `tradesphere_e2e`. Create it once with `docker compose exec -T postgres createdb -U tradesphere tradesphere_e2e` from the root (substitute your actual PostgreSQL username). Tests bootstrap a fictional test organization/editor there. From `frontend/`, suggested setup commands (execution evidence is recorded separately in the command log):
+
+```powershell
+# Use JDK 21 on PATH. Choose and retain a disposable test password across reruns.
+$env:E2E_PASSWORD = 'replace-with-a-unique-test-password'
+# Optional: use installed Edge, avoiding a separate Chromium download.
+$env:E2E_BROWSER = 'msedge'
+npm run test:e2e
+```
+
+Without `E2E_BROWSER`, install Playwright Chromium with `npx playwright install chromium`. Tests launch their own backend on 8081 and UI on 5174, await readiness, run the real workflow, and stop those processes afterward. Keep these ports free. Reusing the test database requires the original test password because bootstrap never resets credentials. `E2E_POSTGRES_DB` can select another explicitly disposable test database; never point it at a database containing real users or business data.
+
+[TradeSphere CI](.github/workflows/ci.yml) runs backend/PostgreSQL checks, the real Chromium catalog workflow, and frontend install/lint/tests/build on PRs targeting `main` and pushes to `main`. It uses a fresh disposable database and generated database/test passwords, then removes its CI volume. No production deployment is configured. See the [test strategy](docs/testing/TEST_STRATEGY.md), [command log](docs/COMMAND_LOG.md), and [learning journal](docs/LEARNING_JOURNAL.md) for actual evidence and limitations.
 
 ## Stop and troubleshoot
 
@@ -97,6 +111,9 @@ Tenant-owned data must be isolated by organization, and authorization must be en
 - [AGENTS.md](AGENTS.md): concise persistent instructions for coding agents.
 - [Mentoring guidelines](docs/MENTORING_GUIDELINES.md): teaching approach and automatic journal maintenance.
 - [Learning journal](docs/LEARNING_JOURNAL.md): completed engineering milestones, actual validation, and interview revision.
+- [Command log](docs/COMMAND_LOG.md): important executed commands, purpose, flags, results, and troubleshooting.
+- [Test strategy](docs/testing/TEST_STRATEGY.md): requirements-derived test coverage and verification policy.
+- [Catalog API](docs/api/PRODUCT_CATALOG.md): authentication, requests, pagination, validation, and errors.
 - [Project context](docs/PROJECT_CONTEXT.md): business scenario, learning goals, and assumptions.
 - [Requirements](docs/REQUIREMENTS.md): scope, business rules, and acceptance expectations.
 - [Architecture](docs/ARCHITECTURE.md): proposed design, module ownership, and unresolved choices.
