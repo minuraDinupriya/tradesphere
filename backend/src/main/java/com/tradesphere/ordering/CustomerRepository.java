@@ -32,6 +32,11 @@ public class CustomerRepository {
                 new MapSqlParameterSource("organizationId", organizationId).addValue("id", id), CustomerRepository::map).stream().findFirst();
     }
 
+    public Optional<Customer> lockForOrder(UUID organizationId, UUID id) {
+        return jdbc.query("SELECT * FROM tradesphere.customers WHERE organization_id = :organizationId AND id = :id FOR SHARE",
+                new MapSqlParameterSource("organizationId", organizationId).addValue("id", id), CustomerRepository::map).stream().findFirst();
+    }
+
     public Optional<Customer> update(UUID organizationId, UUID id, CustomerValues values, long version) {
         return jdbc.query("""
                 UPDATE tradesphere.customers SET name = :name, contact_name = :contactName, email = :email,
