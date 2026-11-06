@@ -16,6 +16,9 @@ import { CustomerListPage } from './features/customers/CustomerListPage'
 import { CustomerFormPage } from './features/customers/CustomerFormPage'
 import { CustomerDetailsPage } from './features/customers/CustomerDetailsPage'
 import { SellingPricePage } from './features/catalog/SellingPricePage'
+import { OrderListPage } from './features/ordering/OrderListPage'
+import { OrderFormPage } from './features/ordering/OrderFormPage'
+import { OrderDetailsPage } from './features/ordering/OrderDetailsPage'
 
 function App() {
   const { user, loading, error, refresh } = useAuth()
@@ -36,6 +39,9 @@ function App() {
       <Route path="customers/new" element={<CustomerFormPage key="new-customer" />} />
       <Route path="customers/:id/edit" element={<CustomerFormPage key={location.pathname} />} />
       <Route path="customers/:id" element={<CustomerDetailsPage key={location.pathname} />} />
+      <Route path="orders" element={<OrderListPage />} />
+      <Route path="orders/new" element={<OrderFormPage key="new-order" />} />
+      <Route path="orders/:id" element={<OrderDetailsPage key={location.pathname} />} />
       <Route path="warehouses" element={<WarehouseListPage />} />
       <Route path="warehouses/new" element={<WarehouseFormPage key="new-warehouse" />} />
       <Route path="warehouses/:id/edit" element={<WarehouseFormPage key={location.pathname} />} />
