@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: TRD-6, TRD-13, TRD-15, and TRD-16 are merged. TRD-17 implements pending orders and atomic confirmation/reservation. Cancellation, fulfillment, full identity administration, and deployment remain planned. This is a planned sequence, not a fixed schedule; see the [learning journal](LEARNING_JOURNAL.md) for actual evidence and PR status.
+Status: TRD-6/TRD-13/TRD-15/TRD-16/TRD-17 are merged. TRD-18 implements processing, eligible cancellation, full fulfillment, and scoped order audit. Full identity administration, general audit, and deployment remain planned. This is a planned sequence, not a fixed schedule; see the [learning journal](LEARNING_JOURNAL.md) for actual evidence and PR status.
 
 The goal is a defensible, functioning MVP before adding advanced infrastructure. Internship interviews begin in January 2027; prioritize working core flows and the ability to explain them over completing every phase by that date.
 
@@ -18,13 +18,13 @@ Exit evidence: documented setup works, migrations and available checks run, and 
 
 Deliver incremental working slices for products, the three fictional warehouses, receipts, and stock availability. Resolve fields and quantity semantics as each feature requires. Add corresponding UI and tests instead of postponing all integration until the end.
 
-TRD-13 covers product catalog. TRD-15 adds warehouses, one-product receipts, balances, and movement history with separate inventory-write access and PostgreSQL retry/concurrency tests. Active status now gates new receipts; order eligibility/reservations are still unimplemented. Corrections, transfers, and multi-line deliveries are not part of the implemented slice.
+TRD-13 covers product catalog. TRD-15 adds warehouses, one-product receipts, balances, and movement history with separate inventory-write access and PostgreSQL retry/concurrency tests. Active status gates new receipts; TRD-17/TRD-18 add order allocation and closure. Corrections, transfers, and multi-line deliveries are not part of the implemented slice.
 
 Exit evidence: a receipt changes the correct balance, availability follows the stock formula, and unauthorized or cross-organization access is rejected.
 
 ## Phase 3: customers and order correctness
 
-TRD-16 implements customer/LKR price prerequisites. TRD-17 adds pending multi-item orders, immutable creation-time snapshots, all-or-nothing reservation, safe retries, and PostgreSQL contention/rollback coverage. Cancellation, fulfillment, expiry/amendment, taxes, credit, invoices, and payments remain unimplemented; this phase is not entirely complete.
+TRD-16 implements customer/LKR price prerequisites. TRD-17 adds pending multi-item orders, immutable creation-time snapshots, all-or-nothing reservation, safe retries, and PostgreSQL contention/rollback coverage. TRD-18 completes the core processing/cancellation/fulfillment graph and scoped audit with the same transaction model. Expiry/amendment, taxes, credit, invoices, and payments remain unimplemented; these are separate future policy decisions.
 
 Implement customer management and the single-warehouse order workflow. Resolve lifecycle eligibility and API retry behavior. Cover atomic confirmation, contention, exactly-once cancellation effects, fulfillment, and relevant audit records.
 

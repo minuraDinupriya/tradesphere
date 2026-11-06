@@ -60,6 +60,17 @@ Actual results belong in the journal/command log. This is not evidence of unimpl
 - Creation replay compares canonical quantities and never reprices; changed payload conflicts. Confirmation replay succeeds even after later deactivation, retaining actor/time.
 - Component create/list/detail interactions, invalid/duplicate lines, loading/empty/error/success states, uncertain creation payload retention, confirmation retry, and read-only controls. Real browser multi-item creation/confirmation ties snapshots to inventory availability, alongside existing regression workflows.
 
-Unit tests support local rules; only real PostgreSQL tests establish database contention/rollback evidence. Future cancellation/fulfillment and exhaustive deadlock/load/failover guarantees remain outside these results.
+Unit tests support local rules; only real PostgreSQL tests establish database contention/rollback evidence. TRD-17 results alone do not establish lifecycle behavior; TRD-18 coverage follows below. Exhaustive deadlock/load/failover guarantees remain outside these results.
+
+## TRD-18 scenario focus
+
+- Exercise all five states against four actions, including successful replays without state regression. Approved rules forbid cancellation after processing and require processing before fulfillment.
+- Pending cancellation changes no stock; confirmed cancellation releases once; full fulfillment consumes reservations and subtracts physical/reserved equally. Snapshots and receipt history remain unchanged; deactivated master records cannot strand existing allocations.
+- Coordinate duplicate cancel/fulfill, processing versus cancel, cancel versus fulfill, confirmation versus cancel/fulfill, overlapping distinct orders, and receipt contention. Inspect committed balances, reservation closure, actors/times, audit counts, and terminal states.
+- Inject a fixture-scoped failure on a later movement insertion for cancellation and fulfillment; prove earlier attempts occurred and all business writes rolled back. Reject inconsistent reservation quantities without partial effects.
+- API tenant/read-only/anonymous/CSRF denial and direct SQL graph/closure/delta/actor constraints. Upgrade a uniquely named disposable PostgreSQL database from V6 with existing orders/reservations to V7 and verify metadata/backfill/balances remain correct. The configured test database owner needs create/drop database privileges; local Compose/CI use disposable owners. Never run this suite against production.
+- Component tests cover all status filters, permission/terminal controls, dialogs/dismissal, stale-state reload, uncertain same-action retry, and readable history/error recovery. The real-browser lifecycle journey covers Escape/focus restoration, both cancellations, processing, fulfillment after a deliberately lost committed response, persisted audit/stock, and mobile overflow, alongside all prior journeys.
+
+No production incident is simulated as history; injected failures exist only in isolated tests. Results are recorded in the journal/command log. Browser coverage remains Chromium-family, with no exhaustive accessibility, stress, or disaster-recovery claim.
 
 See [workflow](../DEVELOPMENT_WORKFLOW.md) for review rules, [README](../../README.md) for runnable commands, and [learning journal](../LEARNING_JOURNAL.md) for executed verification evidence.

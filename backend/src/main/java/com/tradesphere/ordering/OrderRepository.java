@@ -71,6 +71,13 @@ public class OrderRepository {
         if (changed != 1) throw new IllegalStateException("Locked pending order could not be confirmed.");
     }
 
+    public void transition(UUID organizationId, UUID id, String from, String to) {
+        var changed = jdbc.update("""
+                UPDATE tradesphere.orders SET status = :to WHERE organization_id = :organizationId AND id = :id AND status = :from
+                """, scope(organizationId).addValue("id", id).addValue("from", from).addValue("to", to));
+        if (changed != 1) throw new IllegalStateException("Locked order could not change state.");
+    }
+
     public List<OrderSummary> list(UUID organizationId, String q, String status, int page, int size) {
         return jdbc.query("SELECT * " + FILTER + " ORDER BY created_at DESC, id DESC LIMIT :limit OFFSET :offset",
                 filter(organizationId, q, status).addValue("limit", size).addValue("offset", (long) page * size), OrderRepository::map);

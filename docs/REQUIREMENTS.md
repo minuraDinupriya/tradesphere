@@ -1,6 +1,6 @@
 # Requirements
 
-Status: catalog/minimal session access (TRD-13), warehouse/receiving inventory (TRD-15), customer/LKR sales pricing (TRD-16), and pending orders/atomic reservation (TRD-17) are implemented. Fulfillment, cancellation, and general audit remain **planned**. Specified rules come from the project brief/current ticket; proposals and policies are labeled. Execution evidence belongs in the learning journal, not inferred from this list.
+Status: catalog/access (TRD-13), warehouse/receiving inventory (TRD-15), customers/LKR pricing (TRD-16), and pending orders/reservation (TRD-17) are merged. TRD-18 implements processing, cancellation, full fulfillment, and order-scoped audit. General security/business audit remains planned. Specified rules come from the project brief/current ticket; proposals and policies are labeled. Execution evidence belongs in the learning journal, not inferred from this list.
 
 ## MVP capabilities
 
@@ -10,8 +10,9 @@ Status: catalog/minimal session access (TRD-13), warehouse/receiving inventory (
 - **Inventory availability (TRD-15):** show on-hand, reserved, and generated available quantities by organization/warehouse/product for recorded balance rows. Untouched warehouse/product combinations are not expanded into zero rows. Receipts do not create reservations. Movement history/detail includes quantity, actor, timestamp, reference, and note. See [API limits and semantics](api/INVENTORY.md).
 - **Customers (TRD-16):** approved name (required), optional contact person/email/phone/address, active status, UUID IDs; create/view/edit/search/status/pagination with organization isolation and independent customer-write permission. Names/contact details need not be unique. No deletion or portal.
 - **Selling prices (TRD-16):** one organization-level LKR price per product across warehouses. New/existing products may start unpriced; explicit zero is allowed. Reject negative/invalid/extra-decimal amounts without rounding; use fixed-precision storage and decimal-string API/UI values. Price-write is independent of catalog/customer/inventory permissions. Version checks reject stale edits. See [API bounds and exclusions](api/CUSTOMERS_AND_PRICING.md).
-- **Ordering (TRD-17):** create immutable pending orders for one active customer/warehouse with 1–100 distinct active, priced products; positive whole-unit quantities follow inventory's safe-integer limit. Snapshot product labels/unit/LKR price at creation and calculate exact totals on the server. Pending orders reserve nothing and need not have available stock. Confirm atomically reserves every line or none, rechecks activity without repricing, and handles concurrent/retried confirmation without double reservation. Order-write permission is independent of other write permissions. Creation also supports same-request-ID retry. See [order API](api/ORDERS.md) for bounds and semantics; cancellation/fulfillment remain future scope.
-- **Audit:** record important security and business changes. Event fields, retention, and visibility are unresolved.
+- **Ordering (TRD-17):** create immutable pending orders for one active customer/warehouse with 1–100 distinct active, priced products; positive whole-unit quantities follow inventory's safe-integer limit. Snapshot product labels/unit/LKR price at creation and calculate exact totals on the server. Pending orders reserve nothing and need not have available stock. Confirm atomically reserves every line or none, rechecks activity without repricing, and handles concurrent/retried confirmation without double reservation. Order-write permission is independent of other write permissions. Creation also supports same-request-ID retry. See [order API](api/ORDERS.md) for bounds and semantics; TRD-18 extends lifecycle below.
+- **Lifecycle (TRD-18):** process confirmed orders, cancel pending/confirmed orders, fulfill processing orders in full. State, reservation closure, balance deltas, and audit records share one transaction. Existing order-write access guards mutations; organization readers may view history. See the lifecycle below.
+- **Audit (TRD-18):** order transitions and release/fulfillment movements record organization, actor ID, and timestamp, without duplicates on replay. Earlier creation/confirmation metadata is backfilled and explicitly labeled. General audit/security events, retention, and tamper-proof storage remain unresolved.
 
 ## Stock invariants
 
@@ -24,17 +25,19 @@ For each organization, warehouse, and product:
 - Cancelling an eligible order must release its reservations exactly once, including under retries or concurrent requests.
 - Fulfillment must consume the order's reservations and reduce physical on-hand stock consistently, as one atomic business operation.
 - **Implemented balance constraints:** on-hand and reserved quantities remain non-negative, and reserved stock never exceeds on-hand stock. Quantity changes must preserve these constraints.
-- **Approved receipt input rule:** positive whole units with quantities/balances at most 9,007,199,254,740,991 (JavaScript's exact integer limit). Fractional JSON inputs must be rejected, not rounded. Whole units remain the working assumption for future orders, which require their own validation design.
+- **Approved receipt input rule:** positive whole units with quantities/balances at most 9,007,199,254,740,991 (JavaScript's exact integer limit). Fractional JSON inputs must be rejected, not rounded. Implemented orders use the same positive whole-unit bounds.
 
 ## Order lifecycle
 
-TRD-17 implements `PENDING` → `CONFIRMED`; `PENDING` replaces the earlier proposed `DRAFT` name. No order/item edits or terminal actions are implemented. The remaining lifecycle bullets below are future proposals requiring explicit scope/eligibility decisions.
+TRD-18 extends TRD-17's `PENDING` state (`DRAFT` was only an earlier proposal). The developer approved these transitions:
 
-- A pending order has no stock reservation; confirmation reserves every item in the selected warehouse. An already confirmed request replays its recorded result before mutable eligibility checks.
-- A confirmed order can be fulfilled in full or cancelled; both are terminal actions in this proposed MVP lifecycle.
-- Draft cancellation may be allowed and releases no inventory. Exact cancellation eligibility remains unresolved.
-- Confirmed items and warehouse should be immutable unless a separately designed atomic amendment workflow is introduced; the proposed MVP omits that workflow.
-- Repeated or competing confirmation, cancellation, and fulfillment requests must never repeat their stock effects. Whether an already completed request returns success or a conflict is an API decision still to be made.
+- `PENDING` → `CONFIRMED` reserves every line, or `CANCELLED` changes no stock.
+- `CONFIRMED` → `PROCESSING` keeps stock reserved, or `CANCELLED` releases all reservations without changing physical stock.
+- `PROCESSING` → `FULFILLED` consumes all reservations and decreases on-hand/reserved equally. Cancellation and direct confirmed fulfillment are disallowed.
+- `CANCELLED` and `FULFILLED` are terminal. Headers/items/warehouse/prices remain immutable; no amendment or reopening exists.
+- Implementation policy: a previously recorded action returns 200 with `replayed:true` and the current order, including after further progress, without new effects or state regression. An unrecorded invalid action returns 409.
+- Existing reservations can be released/consumed after customer/product/warehouse deactivation; rechecking new-order eligibility would strand already allocated stock. Cancellation/fulfillment never reserve fresh stock.
+- State history and stock movements commit with the business change. A later-item failure rolls back the entire operation. See [API](api/ORDERS.md) and [decision 0006](decisions/0006-order-lifecycle.md).
 
 ## Organization isolation and security
 
@@ -71,4 +74,4 @@ The initial MVP has no backorders, partial fulfillment, real payments, or multi-
 
 ## Decisions needed before affected features
 
-TRD-13 resolves product/access in [decision 0002](decisions/0002-product-catalog-and-session-access.md), TRD-15 receiving in [decision 0003](decisions/0003-warehouse-inventory.md), and TRD-16 customer/LKR prices in [decision 0004](decisions/0004-customers-and-sales-pricing.md). TRD-17 implements creation-time snapshots, pending/confirmed states, and retries in [decision 0005](decisions/0005-order-reservation.md). Future decisions include quote expiry/amendment, taxes, full membership/roles, receipt corrections, cancellation/fulfillment eligibility and retries, and general audit contents. Do not silently implement open questions.
+TRD-13 resolves product/access in [decision 0002](decisions/0002-product-catalog-and-session-access.md), TRD-15 receiving in [decision 0003](decisions/0003-warehouse-inventory.md), and TRD-16 customer/LKR prices in [decision 0004](decisions/0004-customers-and-sales-pricing.md). TRD-17 covers snapshots/reservation in [decision 0005](decisions/0005-order-reservation.md); TRD-18 covers lifecycle/audit in [decision 0006](decisions/0006-order-lifecycle.md). Future decisions include quote expiry/amendment, taxes, full membership/roles, receipt corrections, returns, and general audit contents. Do not silently implement open questions.
