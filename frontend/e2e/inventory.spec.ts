@@ -62,6 +62,11 @@ test('warehouse operations and retry-safe stock receipt update inventory and mov
   await page.getByLabel(/^Product/).selectOption({ label: `${productName} (${sku})` })
   await page.getByLabel('Quantity received', { exact: false }).fill('5')
   await page.getByLabel('Reference', { exact: true }).fill(retryReference)
+  // Prove native validation permits submission before simulating a lost response.
+  const invalidFields = await page.locator('form :invalid').evaluateAll(fields => fields.map(field => ({
+    id: field.id, message: (field as HTMLInputElement).validationMessage,
+  })))
+  expect(invalidFields).toEqual([])
   let dropNextResponse = true
   await page.route('**/api/v1/inventory/receipts', async route => {
     if (dropNextResponse) {

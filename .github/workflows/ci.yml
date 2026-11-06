@@ -56,6 +56,13 @@ jobs:
       - name: Database diagnostics on failure
         if: failure()
         run: docker compose logs postgres
+      - name: Retain browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failure-evidence
+          path: frontend/test-results/
+          retention-days: 3
       - name: Stop disposable database
         if: always()
         run: docker compose down --volumes
