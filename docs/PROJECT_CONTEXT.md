@@ -36,7 +36,8 @@ Do not invent teammates, customer conversations, approvals, incidents, project h
 - **Resolved for TRD-13:** UUID product IDs, case-insensitive organization-unique SKUs, the approved catalog fields, minimal session sign-in, and catalog read/write permissions. See [decision 0002](decisions/0002-product-catalog-and-session-access.md).
 - **Approved for TRD-16:** minimal customer fields, optional initial organization-level LKR product prices (zero allowed, maximum two decimals, no silent rounding), and separate customer/price write permissions. See [decision 0004](decisions/0004-customers-and-sales-pricing.md).
 - **TRD-17 implementation policy:** pending orders snapshot exact LKR prices/labels at creation, use one customer/warehouse, and confirm with all-or-nothing reservation. Duplicate confirmation replays; independent order-write permission follows the existing default-false permission pattern. See [decision 0005](decisions/0005-order-reservation.md).
-- **Unresolved:** warehouse identities, taxes, quote expiry/amendment, cancellation/fulfillment behavior, and broader user roles. These are not silently implemented by TRD-17.
+- **Approved for TRD-18:** cancellation is allowed only before processing; full fulfillment requires processing. Terminal orders cannot be reopened. See [decision 0006](decisions/0006-order-lifecycle.md) for replay and stock/audit policies.
+- **Unresolved:** warehouse identities, taxes, quote expiry/amendment, returns, and broader user roles. These are not silently implemented.
 - **Established for TRD-6:** initial dependency versions and foundation tooling; see [architecture](ARCHITECTURE.md). The supplied repository is `minuraDinupriya/tradesphere`; TRD-6 is the engineering foundation issue. Its Jira URL has not been supplied.
 - **Unresolved:** hosting and full identity lifecycle/membership administration beyond the initial session mechanism.
 

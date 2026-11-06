@@ -6,11 +6,11 @@ The system will manage products, warehouses, stock receipts, inventory availabil
 
 ## Current status
 
-TRD-6, TRD-13, TRD-15, and TRD-16 are merged. TRD-17 adds pending multi-item orders with creation-time LKR snapshots and atomic, retry-safe stock reservation. Existing catalog, customer, pricing, warehouse, receiving, balance, and movement workflows remain regression coverage. Cancellation, fulfillment, shipping, payments, partial orders, backorders, taxes, invoices, credit, multi-currency, full identity administration, and deployment remain excluded. Confirmed reservations remain held until future lifecycle work exists. This is a local portfolio implementation, not a production-ready service; actual evidence is in the [learning journal](docs/LEARNING_JOURNAL.md).
+TRD-6, TRD-13, TRD-15, TRD-16, and TRD-17 are merged. TRD-18 adds processing, eligible cancellation, full fulfillment, and organization-scoped order history. Cancellation releases reserved stock once; fulfillment reduces physical and reserved stock together. Existing workflows remain regression coverage. Shipping, payments, returns, partial fulfillment, backorders, taxes, invoices, credit, multi-currency, full identity administration, and deployment remain excluded. This is a local portfolio implementation; actual verification and PR status are in the [learning journal](docs/LEARNING_JOURNAL.md).
 
 ## Technical baseline
 
-Java 21 LTS, Spring Boot 4.1.2 with Spring Security/Validation, Maven Wrapper, React 19 with TypeScript and Vite 8, PostgreSQL 18.6, Flyway, Docker Compose, and GitHub Actions CI. The backend is a modular monolith; Catalog/prices, minimal Identity, warehouse/receiving/reservation Inventory, and customer/pending-confirmed Ordering are implemented. Remaining order lifecycle and general Audit remain planned. See the [customer/pricing decision](docs/decisions/0004-customers-and-sales-pricing.md) and [order/reservation decision](docs/decisions/0005-order-reservation.md).
+Java 21 LTS, Spring Boot 4.1.2 with Spring Security/Validation, Maven Wrapper, React 19 with TypeScript and Vite 8, PostgreSQL 18.6, Flyway, Docker Compose, and GitHub Actions CI. The backend is a modular monolith using JDBC. Ordering and Inventory own their lifecycle history and stock records; a general Audit module remains planned. See the [order/reservation decision](docs/decisions/0005-order-reservation.md) and [lifecycle decision](docs/decisions/0006-order-lifecycle.md).
 
 See [architecture](docs/ARCHITECTURE.md), the [foundation decision](docs/decisions/0001-engineering-foundation.md), the [catalog/security decision](docs/decisions/0002-product-catalog-and-session-access.md), and the [inventory decision](docs/decisions/0003-warehouse-inventory.md) for rationale and open choices. Dependency versions are recorded in the POM and npm lockfile; later domain design remains provisional.
 
@@ -122,7 +122,7 @@ Tenant-owned data must be isolated by organization, and authorization must be en
 - [Catalog API](docs/api/PRODUCT_CATALOG.md): authentication, requests, pagination, validation, and errors.
 - [Inventory API](docs/api/INVENTORY.md): warehouse management, receipt retry behavior, balances, history, and separate write permission.
 - [Customer/pricing API](docs/api/CUSTOMERS_AND_PRICING.md): customer fields, exact LKR decimal strings, edit versions, and sales permission provisioning.
-- [Order API](docs/api/ORDERS.md): pending creation, immutable snapshots, confirmation, retry behavior, atomic reservation, and order permission setup.
+- [Order API](docs/api/ORDERS.md): creation/snapshots, lifecycle actions, atomic reservation/release/consumption, audit history, retries, and permission setup.
 - [Project context](docs/PROJECT_CONTEXT.md): business scenario, learning goals, and assumptions.
 - [Requirements](docs/REQUIREMENTS.md): scope, business rules, and acceptance expectations.
 - [Architecture](docs/ARCHITECTURE.md): proposed design, module ownership, and unresolved choices.

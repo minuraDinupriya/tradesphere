@@ -253,7 +253,7 @@ Senior self-review examined tenant predicates, default-deny security routes, per
 
 **Date and Jira ticket**
 
-2026-11-06 (Asia/Colombo). [TRD-17](https://minuraranaweera.atlassian.net/browse/TRD-17), branch `feature/TRD-17-order-stock-reservation`, from merged TRD-16/main `50ff58d`. Actual Jira requirements were retrieved before implementation. Commits: backend `c72fb2b`, useful stock conflicts `d63849f`, frontend/tests `c6c1d8f`, documentation `c13dc33`. [PR #5](https://github.com/minuraDinupriya/tradesphere/pull/5) is open and unmerged. Implementation and verified results are recorded below; human merge approval and demonstrated understanding remain separate pending states.
+2026-11-06 (Asia/Colombo). [TRD-17](https://minuraranaweera.atlassian.net/browse/TRD-17), branch `feature/TRD-17-order-stock-reservation`, from merged TRD-16/main `50ff58d`. Actual Jira requirements were retrieved before implementation. Commits: backend `c72fb2b`, useful stock conflicts `d63849f`, frontend/tests `c6c1d8f`, documentation `c13dc33`. Update verified before TRD-18: [PR #5](https://github.com/minuraDinupriya/tradesphere/pull/5) is merged on main as `a3cb509`. Earlier implementation/verification evidence below describes TRD-17's original scope; TRD-18 extends its lifecycle. No developer understanding is inferred from the merge.
 
 **What We Built**
 
@@ -308,3 +308,60 @@ The final local backend run after typed SKU/name stock-conflict feedback passed 
 
 1. Trace one two-item confirmation from React to SQL. Explain which statement prevents overselling, which lock prevents duplicate confirmation, and where rollback is triggered. Start with atomicity before advancing to other ACID properties.
 2. Predict two orders each requesting four units when only five are available, then predict two retries of the same order. Explain the final on-hand/reserved/available numbers and compare with the PostgreSQL tests. These are suggested exercises, not demonstrated student achievements.
+
+## 2026-11-06 — TRD-18: Order lifecycle, cancellation, and fulfillment
+
+**Date and Jira ticket**
+
+2026-11-06 (Asia/Colombo). [TRD-18](https://minuraranaweera.atlassian.net/browse/TRD-18), branch `feature/TRD-18-order-lifecycle-fulfillment`, based on merged TRD-17/main `a3cb509`. Actual Jira/attachment requirements were read; the developer approved disallowing cancellation after processing starts and requiring processing before fulfillment. Backend/tests commit `ad88755`; frontend/tests commit `fb8a111`. PR/hosted status is recorded after it exists. The PR must remain unmerged and Jira must not be marked Done without approval.
+
+**What We Built**
+
+Order processing, cancellation of pending/confirmed orders, full fulfillment of processing orders, safe repeated actions, and organization-scoped transition/stock history. Confirmed cancellation releases earmarked goods; fulfillment deducts them physically and closes their reservations. Existing creation, snapshots, receipt history, and permission setup remain intact. UI dialogs explain consequences, support keyboard dismissal/focus restoration, and recover from stale state or lost responses. No shipping, payment, return, partial fulfillment, or general audit subsystem was added.
+
+**Concepts I Should Understand**
+
+- **State machine:** a small explicit graph defines legal business moves. Processing is a commitment boundary; hiding a button is helpful UX, while backend rules enforce it.
+- **Exactly-once effects versus delivery:** a request can arrive more than once. Under the order lock, a recorded action replays the current order without applying stock/audit effects again. This does not promise a network delivers once.
+- **Atomic closure:** transaction rollback groups balances, reservation statuses, order state, and history. Release changes reserved only; consumption changes on-hand and reserved equally. Basic locking/atomicity are explained in TRD-17 above.
+- **Audit limitations:** reconstructed metadata is labeled, actor IDs persist, usernames are current labels, and transaction timestamps are not commit timestamps. These records are useful evidence, not tamper-proof storage.
+
+**Real-World Analogy**
+
+A hardware store moves a numbered slip from “reserved” to “being packed.” Before packing, cancellation removes its earmarks without removing goods from the shelf. Once packed under this approved policy, staff must finish dispatch rather than cancel. Dispatch crosses out both the shelf quantity and the earmark. Showing the same stamped slip again must not remove a second batch.
+
+**How It Works Internally**
+
+1. [OrderDetailsPage](../frontend/src/features/ordering/OrderDetailsPage.tsx) opens [OrderActionDialog](../frontend/src/features/ordering/OrderActionDialog.tsx), then calls the typed API with the same order/action across an uncertain retry. Read history refreshes independently; a stale-state conflict offers explicit reload.
+2. [OrderController](../backend/src/main/java/com/tradesphere/ordering/OrderController.java) derives organization/actor from the secured session. [OrderLifecycleService](../backend/src/main/java/com/tradesphere/ordering/OrderLifecycleService.java) locks the order, checks recorded action history, and calls [OrderTransitions](../backend/src/main/java/com/tradesphere/ordering/OrderTransitions.java) before effects.
+3. [InventoryOrderAccess](../backend/src/main/java/com/tradesphere/inventory/InventoryOrderAccess.java) requires the surrounding transaction, validates all active reservations against saved items, and delegates sorted closure to [OrderReservationRepository](../backend/src/main/java/com/tradesphere/inventory/OrderReservationRepository.java). Conditional balance/closure writes and a unique movement reinforce once-only effects.
+4. [OrderHistoryRepository](../backend/src/main/java/com/tradesphere/ordering/OrderHistoryRepository.java) records the transition within that transaction. [V7](../backend/src/main/resources/db/migration/V7__extend_order_lifecycle_and_audit.sql) adds closure metadata, graph/tenant/delta constraints, and explicitly labeled creation/confirmation backfill. Any failure rolls back every business write; history reads share a repeatable-read snapshot.
+
+**Engineering Decisions**
+
+Reuse JDBC, PostgreSQL, the existing order lock and independent order-write permission. Keep original reservations with released/consumed status rather than deleting them. Use a separate release/fulfillment ledger to preserve receipt-only history semantics. Closing an existing allocation does not require currently active master records, preventing stranded reservations. Unique target history is a valid replay identity because the approved graph never revisits a state; reopening would require redesign. Optimistic retries, event sourcing, and asynchronous audit add complexity without a current need. See [decision 0006](decisions/0006-order-lifecycle.md).
+
+**Problems and Debugging**
+
+- First new component run had three wording assertions that did not match the implemented dialogs (55 passed/3 failed). Corrected them to the actual accessible text; the full 58-test suite passed.
+- Maven initially could not write its existing cache lock from the restricted execution context. Rerunning the same authorized verification with cache access allowed it to proceed; this was a tooling failure, not test success.
+- The new V6→V7 fixture initially let Flyway infer its history schema. After schema creation, PostgreSQL's user-named schema changed that default, producing “non-empty schema … no schema history table.” Explicit `defaultSchema("public")`, matching application configuration, fixed the fixture. The complete rerun passed and preserved existing data/backfill facts. No applied migration was rewritten.
+- The first browser run passed the new lifecycle journey but failed the older order test: “Pending” now appeared in badge and history. Scoped its assertion to the badge; all six journeys then passed.
+- Before applying V7, review caught SQL CHECK's NULL/UNKNOWN pitfall for initial transitions. Explicit `from_status IS NOT NULL` guards the noninitial graph; direct SQL tests prove a null-to-processing event is rejected. Intentional fixture-scoped later-movement failures prove rollback, not a fabricated production incident.
+
+Executed locally: `.\mvnw.cmd -B -ntp verify` passed **16 unit + 67 real PostgreSQL/API integration tests**, none skipped; the integration total includes 14 lifecycle tests and one actual V6→V7 upgrade. `npm run lint`, `npm run test` (**58 component tests**), `npm run build`, and `npm run test:e2e` (**6 real Edge workflows**) passed. PostgreSQL tests cover all state/action pairs, duplicate/competing actions, overlapping orders/receipts, later-line rollback, deactivation, tenant/CSRF/permissions, and constraints. [Actual screenshots](evidence/TRD-18/README.md) were inspected. Exact commands and hosted results belong in [COMMAND_LOG.md](COMMAND_LOG.md) and later evidence updates.
+
+Senior **self-review** examined transaction propagation, lock ordering, conditional guards, replay after later states, scope/permissions, database tenant references, backfill accuracy, receipt compatibility, and UI uncertainty. No blocking issue remained from that review; this is not external approval or exhaustive security certification. Risks remain: database-owner tampering, live username labels, transaction-time timestamps, potential contention/deadlocks outside tested schedules, no immediate session revocation, no Firefox/Safari/load/failover/accessibility certification, and no production deployment.
+
+**Interview Questions**
+
+1. **What makes a state machine useful here?** It lists allowed moves explicitly, so invalid transitions are rejected consistently before stock effects.
+2. **Why is a retry after fulfillment safe?** The order is locked and its recorded action is checked first; replay returns the current order without new stock writes or events.
+3. **What changes in available stock when fulfilling?** On-hand and reserved both decrease by the fulfilled quantity, so their difference stays unchanged.
+4. **What if the second item's movement insert fails?** The escaping exception rolls back all earlier balance/closure changes, order state, movements, and transition history in that transaction.
+5. **Why can't transaction timestamps establish exact commit order?** PostgreSQL `now()` reflects transaction start; an earlier-starting request may wait for another to commit. The acyclic state sequence supplies causal history order here.
+
+**What I Should Practise**
+
+1. Explain why a processing order rejects cancellation and why a repeated processing request after fulfillment may still return success. Identify “new transition” versus “replay” in the real service.
+2. Start with on-hand 10/reserved 4. Predict the balances after cancellation versus fulfillment, then trace one failure after an earlier item write through the PostgreSQL rollback test. These are suggested exercises; developer understanding has not yet been demonstrated.

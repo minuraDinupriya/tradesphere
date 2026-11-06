@@ -1,6 +1,6 @@
 # Architecture
 
-Status: **TRD-6, TRD-13, TRD-15, and TRD-16 are merged; TRD-17 adds pending orders and atomic reservation**. Cancellation/fulfillment and a general Audit capability remain proposed. Refine proposals using evidence and record significant decisions using the [workflow](DEVELOPMENT_WORKFLOW.md).
+Status: **TRD-6/TRD-13/TRD-15/TRD-16/TRD-17 are merged; TRD-18 adds order lifecycle and scoped audit**. A general Audit capability remains proposed. Refine proposals using evidence and record significant decisions using the [workflow](DEVELOPMENT_WORKFLOW.md).
 
 ## Application shape
 
@@ -52,23 +52,19 @@ TRD-17's `OrderService` owns the order transaction and price/label snapshots; `C
 
 Inventory conditionally increments reserved stock only when available is sufficient; a later-line failure rolls back earlier increments, ledger rows, and the header transition. On-hand and physical receipt history do not change. Deterministic UUID text ordering matches PostgreSQL UUID sorting. This protocol accounts for current receipt locks; it is not a universal guarantee against deadlocks in unspecified future operations. Price snapshots are BigDecimal/numeric values returned as strings; header/line totals have wider precision than product prices. See [decision 0005](decisions/0005-order-reservation.md) and [order API](api/ORDERS.md).
 
-## Future order lifecycle consistency
+## Implemented lifecycle consistency (TRD-18)
 
-An order transition and its inventory changes should share one database transaction. A transaction groups changes so they commit together or roll back together. It prevents a confirmed order from surviving without its reservations, but transaction boundaries alone do not prevent overselling.
+`OrderTransitions` defines the approved graph; `OrderLifecycleService` owns processing, cancellation, and fulfillment transactions. Every mutation locks the tenant-scoped order first, checks recorded action history for replay, then validates the current state. A retry can return a later current state without repeating earlier effects. Existing `OrderService.confirm` uses the same history guard. Order-write access and CSRF are enforced before controllers derive organization/actor from the session.
 
-For future multi-item lifecycle changes, retain the implemented atomicity and lock protocol; the earlier design outline is:
+Inventory owns reservation closure and its movement ledger through `InventoryOrderAccess`. Cancellation of confirmed orders and fulfillment lock that order's reservations, verify the full expected item/quantity set is active, then update shared balances in PostgreSQL UUID order. Conditional balance/closure updates, reservation statuses, unique movement keys, and the order lock protect once-only effects. Any exception rolls back balances, reservations, state, movements, and transition history together. Source deactivation does not prevent closing already-reserved orders.
 
-1. Resolve and verify the authenticated organization and the referenced records.
-2. Lock or conditionally transition the order so concurrent lifecycle requests cannot apply its effects twice.
-3. For confirmation, aggregate repeated product lines and acquire relevant stock-row locks in a deterministic order.
-4. Recheck availability inside the transaction, then create reservations and update balances for all items.
-5. Commit the order transition with those changes, or roll everything back on failure.
+Cancellation releases reserved stock while preserving on-hand; fulfillment reduces both equally. Pending cancellation and starting processing change no balances. Cancellation stops at processing, and fulfillment requires processing. Terminal states cannot be reopened.
 
-Cancellation and fulfillment should guard both the order transition and reservation state so each reservation is released or consumed once. Consistent lock ordering reduces deadlock risk; failure/retry behavior still needs design and testing.
+V7 adds `ACTIVE/RELEASED/CONSUMED` reservation closure metadata, order transitions, and a separate `order_inventory_movements` ledger for release/fulfillment deltas. Receipt-only `stock_movements` and its API retain their meaning. Ordering/Inventory own these narrow records; no general Audit module or event bus is added. Composite foreign keys preserve tenant/order/warehouse/actor relationships. Existing creation/confirmation metadata is backfilled and explicitly marked as reconstructed.
 
-TRD-17 combines order-row locking for idempotency with conditional stock updates for contention. Optimistic versions or serializable transactions are alternatives with explicit retry tradeoffs. An unlocked read-then-write availability check is insufficient. Cancellation/fulfillment require their own state/ledger guards and tests before implementation.
+The history response uses a repeatable-read snapshot for transitions and movements. Timestamps use PostgreSQL transaction time (`now()`), so history is ordered by the acyclic lifecycle sequence, then time/ID; timestamps are not commit-time evidence. Actor IDs are historical; usernames are current labels. These application records are not database-role-enforced immutable or tamper-proof audit storage.
 
-Database checks/unique constraints/composite foreign keys reinforce receipt and reservation invariants in V4/V6. Reservations identify their organization/order/warehouse/product and actor. Release/consumption/expiry remain unimplemented; confirmed stock stays reserved until a future authorized lifecycle operation exists.
+The lock protocol coordinates current receipt, confirmation, release, and fulfillment paths. Deterministic ordering reduces deadlock risk; tests do not establish universal deadlock freedom or load/failover guarantees. Optimistic retries/serializable transactions remain alternatives with complexity costs. See [decision 0006](decisions/0006-order-lifecycle.md) and [order API](api/ORDERS.md).
 
 ## Organization boundary
 
@@ -78,7 +74,7 @@ TRD-13 uses Spring Security server-side sessions, BCrypt hashes, and CSRF protec
 
 ## Audit and external effects
 
-For core business changes, propose writing audit records within the same transaction so a failed transition does not produce a false success record. Security failure logging may require a separate path because a rolled-back business transaction cannot retain its audit writes. Define useful event fields and data minimization before implementation.
+TRD-18 writes order transitions and closure movements in the business transaction so a failed change cannot leave a false success event. General audit remains future scope. Security failure logging may require a separate path because a rolled-back business transaction cannot retain its audit writes; define useful event fields and data minimization before expanding it.
 
 Future asynchronous external effects would need reliable delivery design, potentially an outbox. Neither a broker nor an outbox is necessary for the currently specified MVP.
 
