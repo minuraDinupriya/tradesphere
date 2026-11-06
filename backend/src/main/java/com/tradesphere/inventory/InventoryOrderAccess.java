@@ -10,14 +10,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Inventory operations used only inside Ordering's create/confirm transaction. */
+/** Inventory operations requiring Ordering's surrounding read or mutation transaction. */
 @Service
 public class InventoryOrderAccess {
     private final WarehouseRepository warehouses;
     private final NamedParameterJdbcTemplate jdbc;
-    public InventoryOrderAccess(WarehouseRepository warehouses, NamedParameterJdbcTemplate jdbc) {
+    private final OrderReservationRepository reservations;
+    public InventoryOrderAccess(WarehouseRepository warehouses, NamedParameterJdbcTemplate jdbc, OrderReservationRepository reservations) {
         this.warehouses = warehouses;
         this.jdbc = jdbc;
+        this.reservations = reservations;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -48,4 +50,23 @@ public class InventoryOrderAccess {
     }
 
     public record ReservationItem(UUID productId, long quantity) { }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void closeReservations(UUID organizationId, UUID orderId, UUID warehouseId, UUID actorId, List<ReservationItem> expected, boolean consume) {
+        var locked = reservations.lock(organizationId, orderId);
+        var quantities = expected.stream().collect(java.util.stream.Collectors.toMap(ReservationItem::productId, ReservationItem::quantity));
+        if (locked.size() != expected.size() || locked.stream().anyMatch(row -> !row.status().equals("ACTIVE")
+                || !java.util.Objects.equals(quantities.get(row.productId()), row.quantity()))) throw inconsistent();
+        // Reservation rows belong to one locked order; shared balances are updated in PostgreSQL UUID order.
+        for (var reservation : locked) {
+            if (!reservations.close(organizationId, orderId, warehouseId, actorId, reservation, consume)) throw inconsistent();
+        }
+    }
+
+    @Transactional(readOnly = true, propagation = Propagation.MANDATORY)
+    public List<OrderInventoryMovement> movements(UUID organizationId, UUID orderId) { return reservations.movements(organizationId, orderId); }
+
+    private static InventoryException inconsistent() {
+        return new InventoryException(HttpStatus.CONFLICT, "The order's reservations and stock are inconsistent. No changes were committed. Reload the order or ask the owner to investigate.");
+    }
 }

@@ -112,7 +112,7 @@ class OrderApiIT {
     @AfterEach
     void cleanOwnFixtures() {
         removeFailureTrigger();
-        for (var table : new String[]{"stock_reservations", "order_items", "orders", "stock_movements", "inventory_balances",
+        for (var table : new String[]{"order_inventory_movements", "order_state_history", "stock_reservations", "order_items", "orders", "stock_movements", "inventory_balances",
                 "warehouses", "products", "customers", "users", "organizations"}) {
             var column = table.equals("organizations") ? "id" : "organization_id";
             jdbc.update("DELETE FROM tradesphere." + table + " WHERE " + column + " IN (?, ?)", organizationId, otherOrganizationId);

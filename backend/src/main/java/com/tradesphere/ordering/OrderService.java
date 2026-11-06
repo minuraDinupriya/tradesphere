@@ -17,12 +17,14 @@ public class OrderService {
     private final CustomerRepository customers;
     private final CatalogProductAccess products;
     private final InventoryOrderAccess inventory;
+    private final OrderHistoryRepository history;
 
-    public OrderService(OrderRepository orders, CustomerRepository customers, CatalogProductAccess products, InventoryOrderAccess inventory) {
+    public OrderService(OrderRepository orders, CustomerRepository customers, CatalogProductAccess products, InventoryOrderAccess inventory, OrderHistoryRepository history) {
         this.orders = orders;
         this.customers = customers;
         this.products = products;
         this.inventory = inventory;
+        this.history = history;
     }
 
     @Transactional
@@ -38,13 +40,15 @@ public class OrderService {
             return replayCreation(organizationId, request, inputs, orders.byRequest(organizationId, request.requestId()).orElseThrow());
         }
         orders.insertItems(organizationId, inserted.get().id(), snapshots);
+        history.record(organizationId, inserted.get().id(), null, "PENDING", actorId);
         return new Result(detail(organizationId, inserted.get()), false);
     }
 
     @Transactional
     public Result confirm(UUID organizationId, UUID actorId, UUID id) {
         var order = orders.find(organizationId, id, true).orElseThrow(OrderService::notFound);
-        if (order.status().equals("CONFIRMED")) return new Result(detail(organizationId, order), true);
+        if (history.recorded(organizationId, id, "CONFIRMED")) return new Result(detail(organizationId, order), true);
+        OrderTransitions.next(order.status(), OrderTransitions.Action.CONFIRM);
         inventory.lockActiveWarehouse(organizationId, order.warehouseId());
         activeCustomer(organizationId, order.customerId());
         var items = orders.items(organizationId, id);
@@ -58,6 +62,7 @@ public class OrderService {
             throw conflict("Insufficient available stock for " + unavailable.sku() + " (" + unavailable.productName() + "). No items were reserved.");
         }
         orders.confirm(organizationId, id, actorId);
+        history.record(organizationId, id, "PENDING", "CONFIRMED", actorId);
         return new Result(detail(organizationId, orders.find(organizationId, id, false).orElseThrow()), false);
     }
 
@@ -71,6 +76,12 @@ public class OrderService {
         var items = orders.list(organizationId, q.strip(), status, page, size);
         var total = orders.count(organizationId, q.strip(), status);
         return new Page(items, total, page, size, (total + size - 1) / size);
+    }
+
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public History history(UUID organizationId, UUID id) {
+        orders.find(organizationId, id, false).orElseThrow(OrderService::notFound);
+        return new History(history.events(organizationId, id), inventory.movements(organizationId, id));
     }
 
     private Customer activeCustomer(UUID organizationId, UUID id) {
@@ -104,5 +115,6 @@ public class OrderService {
     private static OrderException notFound() { return new OrderException(HttpStatus.NOT_FOUND, "Order not found in your organization."); }
     private static OrderException conflict(String message) { return new OrderException(HttpStatus.CONFLICT, message); }
     public record Result(OrderDetail order, boolean replayed) { }
+    public record History(List<OrderStateEvent> transitions, List<com.tradesphere.inventory.OrderInventoryMovement> movements) { }
     public record Page(List<OrderSummary> items, long totalElements, int page, int size, long totalPages) { }
 }

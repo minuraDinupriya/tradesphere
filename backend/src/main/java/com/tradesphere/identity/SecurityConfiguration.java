@@ -32,7 +32,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/v1/warehouses", "/api/v1/inventory/receipts").hasAuthority("inventory:write")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/warehouses/*").hasAuthority("inventory:write")
                         .requestMatchers(HttpMethod.GET, "/api/v1/orders", "/api/v1/orders/**").hasAuthority("orders:read")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/orders", "/api/v1/orders/*/confirm").hasAuthority("orders:write")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/orders", "/api/v1/orders/*/confirm", "/api/v1/orders/*/process", "/api/v1/orders/*/cancel", "/api/v1/orders/*/fulfill").hasAuthority("orders:write")
                         .anyRequest().denyAll())
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, exception) ->

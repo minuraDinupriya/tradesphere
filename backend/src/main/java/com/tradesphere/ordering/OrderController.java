@@ -24,7 +24,8 @@ import com.tradesphere.identity.OrganizationUser;
 @RequestMapping("/api/v1/orders")
 public class OrderController {
     private final OrderService orders;
-    public OrderController(OrderService orders) { this.orders = orders; }
+    private final OrderLifecycleService lifecycle;
+    public OrderController(OrderService orders, OrderLifecycleService lifecycle) { this.orders = orders; this.lifecycle = lifecycle; }
 
     @PostMapping
     public ResponseEntity<OrderService.Result> create(@AuthenticationPrincipal OrganizationUser user, @Valid @RequestBody OrderCreateRequest request) {
@@ -40,10 +41,28 @@ public class OrderController {
     @GetMapping("/{id}")
     public OrderDetail get(@AuthenticationPrincipal OrganizationUser user, @PathVariable UUID id) { return orders.get(user.organizationId(), id); }
 
+    @PostMapping("/{id}/process")
+    public OrderService.Result process(@AuthenticationPrincipal OrganizationUser user, @PathVariable UUID id) {
+        return lifecycle.act(user.organizationId(), user.id(), id, OrderTransitions.Action.PROCESS);
+    }
+
+    @PostMapping("/{id}/cancel")
+    public OrderService.Result cancel(@AuthenticationPrincipal OrganizationUser user, @PathVariable UUID id) {
+        return lifecycle.act(user.organizationId(), user.id(), id, OrderTransitions.Action.CANCEL);
+    }
+
+    @PostMapping("/{id}/fulfill")
+    public OrderService.Result fulfill(@AuthenticationPrincipal OrganizationUser user, @PathVariable UUID id) {
+        return lifecycle.act(user.organizationId(), user.id(), id, OrderTransitions.Action.FULFILL);
+    }
+
+    @GetMapping("/{id}/history")
+    public OrderService.History history(@AuthenticationPrincipal OrganizationUser user, @PathVariable UUID id) { return orders.history(user.organizationId(), id); }
+
     @GetMapping
     public OrderService.Page list(@AuthenticationPrincipal OrganizationUser user,
             @RequestParam(defaultValue = "") @Size(max = 100) String q,
-            @RequestParam(defaultValue = "") @Pattern(regexp = "|PENDING|CONFIRMED") String status,
+            @RequestParam(defaultValue = "") @Pattern(regexp = "|PENDING|CONFIRMED|PROCESSING|FULFILLED|CANCELLED") String status,
             @RequestParam(defaultValue = "0") @Min(0) int page, @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         return orders.list(user.organizationId(), q, status, page, size);
     }
