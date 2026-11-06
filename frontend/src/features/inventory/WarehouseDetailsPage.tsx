@@ -3,12 +3,12 @@ import { Link, useParams } from 'react-router-dom'
 import { ErrorState, LoadingState } from '../../shared/components/Feedback'
 import { useAuth } from '../identity/useAuth'
 import { inventoryApi } from './inventoryApi'
-import { useInventoryData } from './useInventoryData'
+import { useRemoteData } from '../../shared/hooks/useRemoteData'
 
 export function WarehouseDetailsPage() {
   const { id } = useParams(); const { user } = useAuth()
   const load = useCallback((signal: AbortSignal) => inventoryApi.warehouse(id!, signal), [id])
-  const { data: warehouse, loading, error, reload } = useInventoryData(load)
+  const { data: warehouse, loading, error, reload } = useRemoteData(load)
   if (loading) return <LoadingState label="Loading warehouse…" />
   if (error) return <><Link className="back-link" to="/warehouses">← Back to warehouses</Link><ErrorState message={error} onRetry={reload} /></>
   if (!warehouse) return null

@@ -41,4 +41,14 @@ Requirements-derived scenarios implemented alongside this slice (results are in 
 
 Order reservation/fulfillment tests belong to their future features; TRD-15 results do not prove overselling protection for unimplemented orders. Browser coverage is Chromium-family only, not exhaustive accessibility, load, or disaster-recovery testing.
 
+## TRD-16 scenario focus
+
+- Customer create/detail/edit/search/status/pagination, normalization, invalid email/field lengths, duplicate names allowed, literal search wildcards, and stale updates.
+- Unpriced versus zero, exact fractional/max LKR amounts, negative/extra-decimal/exponent/JSON-number rejection, and fixed-precision PostgreSQL persistence.
+- Separate customer-only/price-only writers, legacy permission defaults, anonymous/CSRF denial, known foreign IDs/list isolation, and catalog payload price tampering.
+- Concurrent price edits from the same version have one winner; ordinary catalog edits preserve the price.
+- Component creation/validation/filter/retry/empty states and stale customer/price reload; API submission/display preserve decimal strings. Browser create/edit/search customer, set/reject/edit/reload product price, responsive screenshots, and existing catalog/inventory regressions.
+
+Actual results belong in the journal/command log. This is not evidence of unimplemented orders, general price history, multi-currency, or production hardening.
+
 See [workflow](../DEVELOPMENT_WORKFLOW.md) for review rules, [README](../../README.md) for runnable commands, and [learning journal](../LEARNING_JOURNAL.md) for executed verification evidence.

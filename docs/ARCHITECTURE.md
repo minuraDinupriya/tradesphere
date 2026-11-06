@@ -1,6 +1,6 @@
 # Architecture
 
-Status: **TRD-6 foundation, TRD-13 catalog/minimal session access, and TRD-15 warehouse/receiving inventory are implemented**. Inventory adds transactional receipts, balances, movement history, and a separate write permission. Order reservations, Ordering, and a general Audit capability remain proposed. Refine proposals using evidence and record significant decisions using the [workflow](DEVELOPMENT_WORKFLOW.md).
+Status: **TRD-6, TRD-13, and TRD-15 are merged; TRD-16 adds customer management and product selling prices**. Order reservations, the order lifecycle, and a general Audit capability remain proposed. Refine proposals using evidence and record significant decisions using the [workflow](DEVELOPMENT_WORKFLOW.md).
 
 ## Application shape
 
@@ -34,7 +34,13 @@ TRD-6 uses a Maven Wrapper and npm lockfile for repeatable builds. Flyway V1 cre
 
 Use business-capability packages, with internal organization kept as simple as the feature needs. Modules should call explicit application interfaces and must not reach into another module's repositories or mutate its entities directly. Start with synchronous in-process calls; no message broker is required for the MVP.
 
-## Implemented receipt consistency
+## Customer and price foundation
+
+TRD-16 implements customers within Ordering, retaining its existing provisional ownership without implementing orders. Catalog owns a nullable LKR price on each product, represented by `BigDecimal`/PostgreSQL `numeric(14,2)` and decimal strings over HTTP/React. Independent customer and price write authorities prevent catalog/inventory permissions from implicitly granting sales mutations. Customer and price edits use atomic version checks; price has its own version so catalog edits cannot overwrite it. Price input rejects extra decimal places before SQL and a scoped deserializer rejects JSON numeric coercion. See [decision 0004](decisions/0004-customers-and-sales-pricing.md) and [API](api/CUSTOMERS_AND_PRICING.md).
+
+V5 adds customers, selling-price/price-version columns, and default-false permission flags; existing users are not upgraded to writers. A shared React `useRemoteData` hook now owns abortable reads previously local to Inventory. General identity lifecycle and price history remain deferred; future orders must define immutable price snapshots before implementation.
+
+## Receipt consistency
 
 `InventoryService.receive` groups an append-only application movement and balance increase in one transaction. A unique `(organization_id, request_id)` key deduplicates concurrent retries; identical normalized payloads replay the original receipt, and changed payloads conflict. An atomic PostgreSQL upsert increments the existing balance without an unlocked read/overwrite. Overflow rolls back the movement too. Warehouse/product share locks prevent deactivation during a new receipt. The catalog eligibility check uses the public `CatalogProductAccess` service operation, not its repository.
 

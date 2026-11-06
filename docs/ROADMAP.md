@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: TRD-6 and TRD-13 are merged; TRD-15 implements warehouse management, receiving, balances, and receipt history. Full identity administration, customers, and order behavior remain planned. This is a planned sequence, not a fixed delivery schedule; see the [learning journal](LEARNING_JOURNAL.md) for actual evidence and PR status.
+Status: TRD-6, TRD-13, and TRD-15 are merged. TRD-16 adds customer management and LKR selling prices. Full identity administration and order behavior remain planned. This is a planned sequence, not a fixed delivery schedule; see the [learning journal](LEARNING_JOURNAL.md) for actual evidence and PR status.
 
 The goal is a defensible, functioning MVP before adding advanced infrastructure. Internship interviews begin in January 2027; prioritize working core flows and the ability to explain them over completing every phase by that date.
 
@@ -23,6 +23,8 @@ TRD-13 covers product catalog. TRD-15 adds warehouses, one-product receipts, bal
 Exit evidence: a receipt changes the correct balance, availability follows the stock formula, and unauthorized or cross-organization access is rejected.
 
 ## Phase 3: customers and order correctness
+
+TRD-16 implements the customer and LKR selling-price prerequisites with independent permissions and exact monetary data. It does not implement orders, taxes, credit, invoices, or payment behavior. Order lifecycle and price-snapshot decisions below remain planned.
 
 Implement customer management and the single-warehouse order workflow. Resolve lifecycle eligibility and API retry behavior. Cover atomic confirmation, contention, exactly-once cancellation effects, fulfillment, and relevant audit records.
 

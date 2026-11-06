@@ -6,7 +6,7 @@ import { useAuth } from '../identity/useAuth'
 import { inventoryApi } from './inventoryApi'
 import type { InventoryBalance, InventoryFilters, StockMovement } from './inventoryApi'
 import { InventoryPagination } from './InventoryPagination'
-import { useInventoryData } from './useInventoryData'
+import { useRemoteData } from '../../shared/hooks/useRemoteData'
 
 export function InventoryPage({ history = false }: { history?: boolean }) {
   const { user } = useAuth(); const [params] = useSearchParams(); const location = useLocation()
@@ -19,7 +19,7 @@ export function InventoryPage({ history = false }: { history?: boolean }) {
     ])
     return { page, warehouses: options.items }
   }, [filters, history])
-  const result = useInventoryData(load)
+  const result = useRemoteData(load)
   function apply(next: InventoryFilters) { result.begin(); setFilters(next) }
   function search(event: FormEvent) { event.preventDefault(); apply({ ...filters, q: q.trim(), warehouseId, page: 0 }) }
   const notice = (location.state as { notice?: string } | null)?.notice

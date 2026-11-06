@@ -5,6 +5,7 @@ import { ErrorState, LoadingState } from '../../shared/components/Feedback'
 import { useAuth } from '../identity/useAuth'
 import { productApi } from './productApi'
 import type { Product } from './productApi'
+import { formatLkr } from './sellingPriceApi'
 
 export function ProductDetailsPage() {
   const { id } = useParams()
@@ -31,6 +32,7 @@ export function ProductDetailsPage() {
       {user?.canWriteCatalog && <Link className="button primary" to={`/products/${product.id}/edit`}>Edit product</Link>}</div>
     <section className="form-card"><dl className="detail-grid">
       <div><dt>SKU</dt><dd>{product.sku}</dd></div><div><dt>Category</dt><dd>{product.category}</dd></div>
+      <div><dt>Selling price</dt><dd>{formatLkr(product.sellingPrice)} {user?.canWritePrices && <Link className="text-link" to={`/products/${product.id}/selling-price`}>Manage selling price</Link>}</dd></div>
       <div><dt>Unit of measure</dt><dd>{product.unitOfMeasure}</dd></div><div><dt>Status</dt><dd><span className={`status-badge ${product.active ? 'active' : 'inactive'}`}>{product.active ? 'Active' : 'Inactive'}</span></dd></div>
       <div className="span-two"><dt>Description</dt><dd className="preserve-lines">{product.description || 'No description provided.'}</dd></div>
       <div><dt>Created</dt><dd>{new Date(product.createdAt).toLocaleString('en-GB')}</dd></div><div><dt>Updated</dt><dd>{new Date(product.updatedAt).toLocaleString('en-GB')}</dd></div>

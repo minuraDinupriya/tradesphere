@@ -34,7 +34,8 @@ Do not invent teammates, customer conversations, approvals, incidents, project h
 - **Working assumption:** the initial demonstration will use one fictional distributor organization; tests should use at least two organizations to exercise isolation. This does not remove tenant boundaries.
 - **Approved for TRD-15:** receipt quantities are positive whole units; one product per receipt, active warehouse/product only, optional reference/note, and retry protection using a request ID. Fractional units, conversions, multi-line deliveries, and corrections need separate agreement. See [decision 0003](decisions/0003-warehouse-inventory.md).
 - **Resolved for TRD-13:** UUID product IDs, case-insensitive organization-unique SKUs, the approved catalog fields, minimal session sign-in, and catalog read/write permissions. See [decision 0002](decisions/0002-product-catalog-and-session-access.md).
-- **Unresolved:** warehouse identities, pricing/currency/tax behavior, broader user roles, and customer-management details.
+- **Approved for TRD-16:** minimal customer fields, optional initial organization-level LKR product prices (zero allowed, maximum two decimals, no silent rounding), and separate customer/price write permissions. See [decision 0004](decisions/0004-customers-and-sales-pricing.md).
+- **Unresolved:** warehouse identities, taxes, future order pricing/snapshot behavior, and broader user roles. These are not silently implemented by TRD-16.
 - **Established for TRD-6:** initial dependency versions and foundation tooling; see [architecture](ARCHITECTURE.md). The supplied repository is `minuraDinupriya/tradesphere`; TRD-6 is the engineering foundation issue. Its Jira URL has not been supplied.
 - **Unresolved:** hosting and full identity lifecycle/membership administration beyond the initial session mechanism.
 

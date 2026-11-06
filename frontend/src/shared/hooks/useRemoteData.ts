@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ApiError, errorMessage } from '../../shared/api/http'
-import { useAuth } from '../identity/useAuth'
+import { ApiError, errorMessage } from '../api/http'
+import { useAuth } from '../../features/identity/useAuth'
 
-export function useInventoryData<T>(load: (signal: AbortSignal) => Promise<T>) {
+export function useRemoteData<T>(load: (signal: AbortSignal) => Promise<T>) {
   const { refresh } = useAuth()
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)

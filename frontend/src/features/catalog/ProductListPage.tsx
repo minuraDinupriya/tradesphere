@@ -5,6 +5,7 @@ import { ApiError, errorMessage } from '../../shared/api/http'
 import { ErrorState, LoadingState } from '../../shared/components/Feedback'
 import { useAuth } from '../identity/useAuth'
 import { productApi } from './productApi'
+import { formatLkr } from './sellingPriceApi'
 import type { ProductFilters, ProductPage } from './productApi'
 
 const initialFilters: ProductFilters = { q: '', category: '', active: '', page: 0, size: 20 }
@@ -66,11 +67,11 @@ export function ProductListPage() {
         {(filters.q || filters.category || filters.active) && <button className="button secondary" onClick={clear}>Clear filters</button>}</div>
         : data && <div className="table-panel"><p className="table-hint">Scroll the table horizontally to see all columns.</p><div className="table-scroll"><table>
           <caption className="sr-only">Products in your organization</caption>
-          <thead><tr><th scope="col">Product name</th><th scope="col">SKU</th><th scope="col">Category</th><th scope="col">Unit</th><th scope="col">Status</th><th scope="col">Updated</th><th scope="col">Actions</th></tr></thead>
+          <thead><tr><th scope="col">Product name</th><th scope="col">SKU</th><th scope="col">Category</th><th scope="col">Unit</th><th scope="col">Status</th><th scope="col">Selling price</th><th scope="col">Updated</th><th scope="col">Actions</th></tr></thead>
           <tbody>{data.items.map(product => <tr key={product.id}>
             <td><Link className="product-name" to={`/products/${product.id}`}>{product.name}</Link></td><td className="sku-cell">{product.sku}</td>
             <td>{product.category}</td><td>{product.unitOfMeasure}</td><td><span className={`status-badge ${product.active ? 'active' : 'inactive'}`}>{product.active ? 'Active' : 'Inactive'}</span></td>
-            <td>{new Date(product.updatedAt).toLocaleDateString('en-GB')}</td><td>{user?.canWriteCatalog
+            <td>{formatLkr(product.sellingPrice)}</td><td>{new Date(product.updatedAt).toLocaleDateString('en-GB')}</td><td>{user?.canWriteCatalog
               ? <Link className="text-link" to={`/products/${product.id}/edit`} aria-label={`Edit ${product.name}`}>Edit</Link>
               : <Link className="text-link" to={`/products/${product.id}`} aria-label={`View ${product.name}`}>View</Link>}</td>
           </tr>)}</tbody>

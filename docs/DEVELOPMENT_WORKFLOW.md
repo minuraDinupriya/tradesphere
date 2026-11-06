@@ -19,7 +19,7 @@ For planned feature deliverables, agree on the outcome and arrange a real Jira k
 7. Open a pull request using the title conventions and template below, linking the Jira deliverable when applicable. Describe the problem, resulting behavior, key decisions, executed validation, and remaining limitations.
 8. Perform an honest review, address findings, and follow the agreed merge process. Do not invent a reviewer or approval for a solo project.
 
-Current authorization covers TRD-15 warehouse/inventory operations, including the approved separate inventory-write permission and single-product whole-unit receipts with retry protection. Do not start order reservations, fulfillment, procurement, full identity administration, production deployment, or other tickets without the developer's approval. TRD-6 and TRD-13 are merged. Keep the pending mentoring-policy draft on its original documentation branch/stash, separate from this feature.
+Current authorization covers TRD-16 Customer & Sales Pricing Foundation, including the approved minimal customer fields, optional initial LKR prices with exact decimal strings/no silent rounding, and separate customer/price write permissions. TRD-6, TRD-13, and TRD-15 are merged. Taxes, payments, invoices, credit, multi-currency, orders, full identity administration, and deployment are excluded. Keep the pending mentoring-policy draft on its original documentation branch/stash. After implementation, begin an interactive real-code lesson one topic at a time and quiz the developer before advancing; implementation, verified tests, and demonstrated understanding are separate states.
 
 ## File and code naming
 

@@ -1,2 +1,2 @@
-/** Ordering capability boundary. Order and customer behavior will be introduced later. */
+/** Customer management and the boundary for future order behavior; orders are not implemented yet. */
 package com.tradesphere.ordering;

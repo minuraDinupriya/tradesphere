@@ -49,10 +49,10 @@ public class InitialOrganizationBootstrap implements ApplicationRunner {
         jdbc.update("INSERT INTO tradesphere.organizations (id, name) VALUES (:id, :name)",
                 Map.of("id", organizationId, "name", organization));
         jdbc.update("""
-                INSERT INTO tradesphere.users (id, organization_id, username, password_hash, can_write_catalog, can_write_inventory)
-                VALUES (:id, :organizationId, :username, :hash, true, true)
+                INSERT INTO tradesphere.users (id, organization_id, username, password_hash, can_write_catalog, can_write_inventory, can_write_customers, can_write_prices)
+                VALUES (:id, :organizationId, :username, :hash, true, true, true, true)
                 """, Map.of("id", UUID.randomUUID(), "organizationId", organizationId,
                 "username", username, "hash", encoder.encode(password)));
-        LOG.info("Initial organization and catalog/inventory editor created. Disable bootstrap and remove its password from local configuration.");
+        LOG.info("Initial organization and business editor created. Disable bootstrap and remove its password from local configuration.");
     }
 }
