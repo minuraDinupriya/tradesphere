@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: TRD-6 is merged; TRD-13 implements the first catalog slice and a minimal session/organization access boundary. Full identity administration and the remaining business capabilities are not implemented. This is a planned sequence, not a fixed delivery schedule; see the [learning journal](LEARNING_JOURNAL.md) for actual evidence and PR status.
+Status: TRD-6 and TRD-13 are merged; TRD-15 implements warehouse management, receiving, balances, and receipt history. Full identity administration, customers, and order behavior remain planned. This is a planned sequence, not a fixed delivery schedule; see the [learning journal](LEARNING_JOURNAL.md) for actual evidence and PR status.
 
 The goal is a defensible, functioning MVP before adding advanced infrastructure. Internship interviews begin in January 2027; prioritize working core flows and the ability to explain them over completing every phase by that date.
 
@@ -18,7 +18,7 @@ Exit evidence: documented setup works, migrations and available checks run, and 
 
 Deliver incremental working slices for products, the three fictional warehouses, receipts, and stock availability. Resolve fields and quantity semantics as each feature requires. Add corresponding UI and tests instead of postponing all integration until the end.
 
-TRD-13 covers product catalog only. Warehouse, receipt, and stock-availability behavior remains unstarted; active/inactive product status does not implement stock or order eligibility rules.
+TRD-13 covers product catalog. TRD-15 adds warehouses, one-product receipts, balances, and movement history with separate inventory-write access and PostgreSQL retry/concurrency tests. Active status now gates new receipts; order eligibility/reservations are still unimplemented. Corrections, transfers, and multi-line deliveries are not part of the implemented slice.
 
 Exit evidence: a receipt changes the correct balance, availability follows the stock formula, and unauthorized or cross-organization access is rejected.
 

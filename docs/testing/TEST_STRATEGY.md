@@ -28,4 +28,17 @@ Planned coverage (not results):
 - PostgreSQL uniqueness enforcement and competing updates without lost edits.
 - Frontend form submission/validation, permissions, request failures/retry, empty/loading/success states, and browser sign-in → create → search → view → edit → sign-out.
 
+## TRD-15 scenario focus
+
+Requirements-derived scenarios implemented alongside this slice (results are in the journal):
+
+- Warehouse create/view/edit/search/status/pagination, organization-unique codes, stale-version conflicts, and field validation.
+- Receipt persistence, correct warehouse/product increments, generated availability, actor/reference/note history, and active eligibility.
+- Zero/negative/fractional/unsafe quantities, invalid identifiers, overflow rollback, and mismatched request-ID payloads.
+- Concurrent distinct receipts retain both increments; concurrent identical request IDs create one receipt/increment. Tests coordinate requests and inspect committed database state.
+- Anonymous/CSRF/permission denial, catalog-only versus inventory-only writers, foreign identifiers, tenant-scoped lists/details, and composite foreign keys.
+- Component form/filter/retry/permission/error/empty interactions. Real browser workflow: sign in, create/edit warehouse, receive, inspect inventory/history, and retry after the server commits but its response is deliberately dropped.
+
+Order reservation/fulfillment tests belong to their future features; TRD-15 results do not prove overselling protection for unimplemented orders. Browser coverage is Chromium-family only, not exhaustive accessibility, load, or disaster-recovery testing.
+
 See [workflow](../DEVELOPMENT_WORKFLOW.md) for review rules, [README](../../README.md) for runnable commands, and [learning journal](../LEARNING_JOURNAL.md) for executed verification evidence.

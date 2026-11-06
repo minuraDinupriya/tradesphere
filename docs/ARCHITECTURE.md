@@ -1,12 +1,12 @@
 # Architecture
 
-Status: **TRD-6 foundation and TRD-13 catalog/minimal session access are implemented**. Catalog has JDBC persistence, validation, organization-scoped APIs, optimistic edits, and integrated React screens. Minimal Identity supports organization-bound users and read/write permissions. Inventory, Ordering, Audit, and the business design below remain proposed. Refine proposals using evidence and record significant decisions using the [workflow](DEVELOPMENT_WORKFLOW.md).
+Status: **TRD-6 foundation, TRD-13 catalog/minimal session access, and TRD-15 warehouse/receiving inventory are implemented**. Inventory adds transactional receipts, balances, movement history, and a separate write permission. Order reservations, Ordering, and a general Audit capability remain proposed. Refine proposals using evidence and record significant decisions using the [workflow](DEVELOPMENT_WORKFLOW.md).
 
 ## Application shape
 
 Use a modular monolith: one backend deployment, organized by business capability with explicit module ownership. This keeps transactions and local development manageable for a solo developer while providing practice in clear boundaries. Microservices would introduce network failure modes, distributed transactions, and deployment overhead before the business workflow needs them.
 
-React with TypeScript calls the Spring Boot product/session HTTP APIs. Catalog retains explicit JDBC persistence and immutable records; no ORM is required for this slice. API naming conventions are defined in the workflow. The [TRD-13 decision](decisions/0002-product-catalog-and-session-access.md) explains the current data flow and design tradeoffs.
+React with TypeScript calls the Spring Boot product/session/inventory HTTP APIs. Catalog and Inventory use explicit JDBC persistence and immutable records; no ORM is required for these slices. API naming conventions are defined in the workflow. The [TRD-13 decision](decisions/0002-product-catalog-and-session-access.md) and [TRD-15 decision](decisions/0003-warehouse-inventory.md) explain current data flow and tradeoffs. Shared HTTP exception translation lives in `com.tradesphere.api`.
 
 ## Baseline technologies and purpose
 
@@ -22,7 +22,7 @@ React with TypeScript calls the Spring Boot product/session HTTP APIs. Catalog r
 
 Do not select exact framework versions from these documents alone; verify supported, compatible releases when scaffolding is authorized.
 
-TRD-6 uses a Maven Wrapper and npm lockfile for repeatable builds. Flyway V1 creates the `tradesphere` schema; V2 adds organizations/users and V3 adds products. History stays in `public`. Only Actuator health (including readiness) is public, without component details. Applications run on the host and PostgreSQL runs in Compose. See [foundation decision](decisions/0001-engineering-foundation.md) and [setup commands](../README.md).
+TRD-6 uses a Maven Wrapper and npm lockfile for repeatable builds. Flyway V1 creates the `tradesphere` schema; V2 adds organizations/users, V3 adds products, and V4 adds warehouses/balances/receipt movements and inventory permission. History stays in `public`. Only Actuator health (including readiness) is public, without component details. Applications run on the host and PostgreSQL runs in Compose. See [foundation decision](decisions/0001-engineering-foundation.md) and [setup commands](../README.md).
 
 ## Proposed module ownership
 
@@ -34,7 +34,13 @@ TRD-6 uses a Maven Wrapper and npm lockfile for repeatable builds. Flyway V1 cre
 
 Use business-capability packages, with internal organization kept as simple as the feature needs. Modules should call explicit application interfaces and must not reach into another module's repositories or mutate its entities directly. Start with synchronous in-process calls; no message broker is required for the MVP.
 
-## Proposed consistency strategy
+## Implemented receipt consistency
+
+`InventoryService.receive` groups an append-only application movement and balance increase in one transaction. A unique `(organization_id, request_id)` key deduplicates concurrent retries; identical normalized payloads replay the original receipt, and changed payloads conflict. An atomic PostgreSQL upsert increments the existing balance without an unlocked read/overwrite. Overflow rolls back the movement too. Warehouse/product share locks prevent deactivation during a new receipt. The catalog eligibility check uses the public `CatalogProductAccess` service operation, not its repository.
+
+Balances enforce nonnegative on-hand/reserved and `reserved <= on_hand`; `available` is generated as their difference. Whole-unit values are limited to JavaScript's exact integer range. Inventory's read projections join current catalog/user labels with organization predicates; this deliberate read-only coupling is recorded in [decision 0003](decisions/0003-warehouse-inventory.md). Inventory does not mutate those modules' data. Movement identifiers/quantity/actor/time are persisted, but current labels are not historical snapshots and the database is not a tamper-proof audit store.
+
+## Proposed order consistency strategy
 
 An order transition and its inventory changes should share one database transaction. A transaction groups changes so they commit together or roll back together. It prevents a confirmed order from surviving without its reservations, but transaction boundaries alone do not prevent overselling.
 
@@ -50,13 +56,13 @@ Cancellation and fulfillment should guard both the order transition and reservat
 
 **Proposed starting choice:** PostgreSQL row locking for understandable contention handling. Conditional updates or optimistic version checks are alternatives; they may require explicit conflict retries and careful multi-item rollback. The final choice depends on implementation and concurrency-test evidence. An unlocked read-then-write availability check is insufficient.
 
-Database checks, unique constraints, and foreign keys should reinforce invariants where practical. Proposed reservation records should identify their order and stock scope so retries cannot duplicate reservation effects. Decide the balance/reservation schema and receipt idempotency policy before implementing them.
+Database checks, unique constraints, and foreign keys reinforce receipt invariants in V4. Proposed reservation records should identify their order and stock scope so retries cannot duplicate reservation effects. The balance schema and receipt retry policy now exist; reservation records and order transitions still need design before implementation.
 
 ## Organization boundary
 
 Propose a shared database/schema with an organization identifier on tenant-owned records. Every access path must enforce authorized organization scope. Consider organization-aware foreign/unique keys to prevent cross-organization relationships. Authentication identifies the caller; authorization determines permitted actions and organizations.
 
-TRD-13 uses Spring Security server-side sessions, BCrypt hashes, and CSRF protection. Identity records bind each user to one organization; controllers derive that scope from the authenticated principal, and all catalog repository queries include it. Product payloads never establish organization authority. Full membership/role administration remains open. PostgreSQL row-level security is an alternative defense to evaluate, not implemented; actual application scoping is covered by PostgreSQL/API tests.
+TRD-13 uses Spring Security server-side sessions, BCrypt hashes, and CSRF protection. Identity records bind each user to one organization; controllers derive scope from `OrganizationUser`, and catalog/inventory queries include it. Payloads never establish organization authority. V4 composite foreign keys also prevent cross-organization warehouse/product/actor references. All authenticated organization users may read inventory; only `inventory:write` permits warehouse mutations/receipts. Existing users default to no inventory-write access, while explicit fresh-database bootstrap creates an initial editor. Full membership/role administration remains open. PostgreSQL row-level security is an alternative defense to evaluate, not implemented; actual application scoping is covered by PostgreSQL/API tests.
 
 ## Audit and external effects
 

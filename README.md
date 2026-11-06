@@ -6,13 +6,13 @@ The system will manage products, warehouses, stock receipts, inventory availabil
 
 ## Current status
 
-TRD-6 is merged. TRD-13 adds end-to-end Product Catalog Management: session sign-in, organization-scoped product creation/list/search/filter/pagination/detail/edit, validation, optimistic edit conflicts, and read/write permissions. The UI uses the supplied Figma Make catalog as visual inspiration; pricing, stock, deletion, full identity administration, other business modules, and deployment remain out of scope. This is a local portfolio implementation, not a production-ready service.
+TRD-6 and TRD-13 are merged. TRD-15 adds organization-scoped warehouse management, stock receiving, on-hand/reserved/available balances, and receipt movement history to the existing catalog and session sign-in. Inventory writes require a separate permission. Receipt retries cannot increase stock twice, and concurrent receipts use atomic database updates. Order reservations, fulfillment, procurement, pricing, deletion, full identity administration, and deployment remain outside this deliverable. This is a local portfolio implementation, not a production-ready service. PR/verification evidence is recorded in the [learning journal](docs/LEARNING_JOURNAL.md).
 
 ## Technical baseline
 
-Java 21 LTS, Spring Boot 4.1.2 with Spring Security/Validation, Maven Wrapper, React 19 with TypeScript and Vite 8, PostgreSQL 18.6, Flyway, Docker Compose, and GitHub Actions CI. The backend is a modular monolith; Catalog and minimal Identity are implemented, while Inventory, Ordering, and Audit remain package boundaries only.
+Java 21 LTS, Spring Boot 4.1.2 with Spring Security/Validation, Maven Wrapper, React 19 with TypeScript and Vite 8, PostgreSQL 18.6, Flyway, Docker Compose, and GitHub Actions CI. The backend is a modular monolith; Catalog, minimal Identity, and warehouse/receiving Inventory are implemented. Ordering and a general Audit capability remain planned.
 
-See [architecture](docs/ARCHITECTURE.md), the [foundation decision](docs/decisions/0001-engineering-foundation.md), and the [catalog/security decision](docs/decisions/0002-product-catalog-and-session-access.md) for rationale and open choices. Dependency versions are recorded in the POM and npm lockfile; later domain design remains provisional.
+See [architecture](docs/ARCHITECTURE.md), the [foundation decision](docs/decisions/0001-engineering-foundation.md), the [catalog/security decision](docs/decisions/0002-product-catalog-and-session-access.md), and the [inventory decision](docs/decisions/0003-warehouse-inventory.md) for rationale and open choices. Dependency versions are recorded in the POM and npm lockfile; later domain design remains provisional.
 
 ## Repository layout
 
@@ -40,7 +40,9 @@ Do not overwrite an existing `.env`. Keep its values unquoted; simple alphanumer
 
 In a second terminal:
 
-For the first account only, edit the ignored root `.env`: set `BOOTSTRAP_ENABLED=true`, choose a `BOOTSTRAP_USERNAME` (3–80 lowercase letters/numbers/dots/hyphens/underscores), a unique `BOOTSTRAP_PASSWORD` (at least 12 characters, at most 72 UTF-8 bytes), and `BOOTSTRAP_ORGANIZATION_NAME=Lanka Distribution Group`. No default password is committed. Bootstrap works only when the user table is empty; it creates one organization/catalog editor and never changes existing credentials. After successful startup, set `BOOTSTRAP_ENABLED=false` and remove the bootstrap password after storing it securely. Registration, password reset, and account administration are not included.
+For the first account only, edit the ignored root `.env`: set `BOOTSTRAP_ENABLED=true`, choose a `BOOTSTRAP_USERNAME` (3–80 lowercase letters/numbers/dots/hyphens/underscores), a unique `BOOTSTRAP_PASSWORD` (at least 12 characters, at most 72 UTF-8 bytes), and `BOOTSTRAP_ORGANIZATION_NAME=Lanka Distribution Group`. No default password is committed. Bootstrap works only when the user table is empty; it creates one organization/editor with catalog and inventory write permissions and never changes existing credentials or permissions. After successful startup, set `BOOTSTRAP_ENABLED=false` and remove the bootstrap password after storing it securely. Registration, password reset, and account administration are not included.
+
+**Upgrading an existing database:** V4 gives existing users `can_write_inventory=false`; catalog editors do not silently gain inventory write access. A database owner must explicitly grant that flag to a chosen organization-bound account, then the user must sign out and in to refresh their session. See [inventory permission provisioning](docs/api/INVENTORY.md#permission-provisioning) for suggested SQL; that grant was not executed on existing development accounts by the agent.
 
 ```powershell
 Set-Location backend
@@ -48,7 +50,7 @@ Set-Location backend
 .\mvnw.cmd spring-boot:run
 ```
 
-Spring reads the root `.env` when launched from `backend/` (or the repository root). Shell environment variables override file values. Flyway applies migrations before startup completes. Open [backend health](http://127.0.0.1:8080/actuator/health); a healthy response includes `"status":"UP"`. `/actuator/health/readiness` becomes ready after startup/bootstrap completes. Health/component details remain hidden; other Actuator endpoints are not exposed. Product endpoints require a session; see the [API documentation](docs/api/PRODUCT_CATALOG.md).
+Spring reads the root `.env` when launched from `backend/` (or the repository root). Shell environment variables override file values. Flyway applies migrations before startup completes. Open [backend health](http://127.0.0.1:8080/actuator/health); a healthy response includes `"status":"UP"`. `/actuator/health/readiness` becomes ready after startup/bootstrap completes. Health/component details remain hidden; other Actuator endpoints are not exposed. Business endpoints require a session; see the [catalog API](docs/api/PRODUCT_CATALOG.md) and [inventory API](docs/api/INVENTORY.md).
 
 In a third terminal:
 
@@ -58,13 +60,13 @@ npm ci
 npm run dev
 ```
 
-Open [TradeSphere](http://127.0.0.1:5173/) and sign in with the account you provisioned. Vite proxies `/api` to port 8080; set `API_PROXY_TARGET` in the frontend terminal if using another backend address. The UI integrates with real product endpoints. No live Stitch export was supplied; the [design decision](docs/decisions/0002-product-catalog-and-session-access.md) records the inspected Figma reference and deliberate deviations.
+Open [TradeSphere](http://127.0.0.1:5173/) and sign in with the account you provisioned. Vite proxies `/api` to port 8080; set `API_PROXY_TARGET` in the frontend terminal if using another backend address. The UI integrates with real product and inventory endpoints. No live Stitch export was supplied. The [catalog design decision](docs/decisions/0002-product-catalog-and-session-access.md) records the previously inspected Figma reference; the [inventory decision](docs/decisions/0003-warehouse-inventory.md) records unavailable inventory previews and reuse of the existing visual system.
 
 On Linux/macOS, use `./mvnw` instead of `.\mvnw.cmd`. Node and Compose commands are the same.
 
 ## Validation
 
-With PostgreSQL running, execute `./mvnw -B -ntp verify` from `backend/` (Windows: `.\mvnw.cmd -B -ntp verify`). It runs business unit tests and Failsafe `*IT` tests against real PostgreSQL: migrations, API behavior, validation, sessions/CSRF, organization isolation, duplicate SKUs, and competing updates. Fixtures use generated users/passwords and clean up only their own organizations. Use a development/test database, never production. `mvn test` alone does not run the integration suite.
+With PostgreSQL running, execute `./mvnw -B -ntp verify` from `backend/` (Windows: `.\mvnw.cmd -B -ntp verify`). It runs business unit tests and Failsafe `*IT` tests against real PostgreSQL: migrations, API behavior, validation, sessions/CSRF, organization isolation, competing edits, concurrent receipts, retry deduplication, and rollback on overflow. Fixtures use generated users/passwords and clean up only their own organizations. Use a development/test database, never production. `mvn test` alone does not run the integration suite.
 
 From `frontend/`:
 
@@ -74,7 +76,7 @@ npm run test
 npm run build
 ```
 
-Vitest and Testing Library cover catalog interactions, permissions, loading/empty/error states, forms, and stale-edit recovery. The build also checks TypeScript for app and browser-test code. `npm run test:watch` supports interactive testing. `npm run preview` serves a static build locally but does not proxy the backend; full-stack local development uses `npm run dev`.
+Vitest and Testing Library cover catalog/inventory interactions, permissions, loading/empty/error states, forms, stale-edit recovery, and retrying an uncertain stock receipt. The build also checks TypeScript for app and browser-test code. `npm run test:watch` supports interactive testing. `npm run preview` serves a static build locally but does not proxy the backend; full-stack local development uses `npm run dev`.
 
 For critical browser tests, use a separate database named `tradesphere_e2e`. Create it once with `docker compose exec -T postgres createdb -U tradesphere tradesphere_e2e` from the root (substitute your actual PostgreSQL username). Tests bootstrap a fictional test organization/editor there. From `frontend/`, suggested setup commands (execution evidence is recorded separately in the command log):
 
@@ -86,9 +88,9 @@ $env:E2E_BROWSER = 'msedge'
 npm run test:e2e
 ```
 
-Without `E2E_BROWSER`, install Playwright Chromium with `npx playwright install chromium`. Tests launch their own backend on 8081 and UI on 5174, await readiness, run the real workflow, and stop those processes afterward. Keep these ports free. Reusing the test database requires the original test password because bootstrap never resets credentials. `E2E_POSTGRES_DB` can select another explicitly disposable test database; never point it at a database containing real users or business data.
+Without `E2E_BROWSER`, install Playwright Chromium with `npx playwright install chromium`. Tests launch their own backend on 8081 and UI on 5174, await readiness, run the real workflows, and stop those processes afterward. Keep these ports free. Reusing the test database requires the original test password because bootstrap never resets credentials. An older TRD-13 test database has no inventory-write grant: use a fresh disposable database or explicitly provision its test account. `E2E_POSTGRES_DB` can select another explicitly disposable test database; never point it at a database containing real users or business data. TRD-15 local verification used `tradesphere_trd15_e2e`.
 
-[TradeSphere CI](.github/workflows/ci.yml) runs backend/PostgreSQL checks, the real Chromium catalog workflow, and frontend install/lint/tests/build on PRs targeting `main` and pushes to `main`. It uses a fresh disposable database and generated database/test passwords, then removes its CI volume. No production deployment is configured. See the [test strategy](docs/testing/TEST_STRATEGY.md), [command log](docs/COMMAND_LOG.md), and [learning journal](docs/LEARNING_JOURNAL.md) for actual evidence and limitations.
+[TradeSphere CI](.github/workflows/ci.yml) runs backend/PostgreSQL checks, real Chromium catalog/inventory workflows, and frontend install/lint/tests/build on PRs targeting `main` and pushes to `main`. It uses a fresh disposable database and generated database/test passwords, then removes its CI volume. No production deployment is configured. TRD-15 local verification passed 31 backend tests, 22 component tests, and 3 browser tests in Edge. See the [test strategy](docs/testing/TEST_STRATEGY.md), [command log](docs/COMMAND_LOG.md), and [learning journal](docs/LEARNING_JOURNAL.md) for actual evidence and limitations.
 
 ## Stop and troubleshoot
 
@@ -114,6 +116,7 @@ Tenant-owned data must be isolated by organization, and authorization must be en
 - [Command log](docs/COMMAND_LOG.md): important executed commands, purpose, flags, results, and troubleshooting.
 - [Test strategy](docs/testing/TEST_STRATEGY.md): requirements-derived test coverage and verification policy.
 - [Catalog API](docs/api/PRODUCT_CATALOG.md): authentication, requests, pagination, validation, and errors.
+- [Inventory API](docs/api/INVENTORY.md): warehouse management, receipt retry behavior, balances, history, and separate write permission.
 - [Project context](docs/PROJECT_CONTEXT.md): business scenario, learning goals, and assumptions.
 - [Requirements](docs/REQUIREMENTS.md): scope, business rules, and acceptance expectations.
 - [Architecture](docs/ARCHITECTURE.md): proposed design, module ownership, and unresolved choices.

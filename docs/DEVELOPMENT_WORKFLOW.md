@@ -19,7 +19,7 @@ For planned feature deliverables, agree on the outcome and arrange a real Jira k
 7. Open a pull request using the title conventions and template below, linking the Jira deliverable when applicable. Describe the problem, resulting behavior, key decisions, executed validation, and remaining limitations.
 8. Perform an honest review, address findings, and follow the agreed merge process. Do not invent a reviewer or approval for a solo project.
 
-Current authorization covers TRD-13 product catalog and the explicitly approved minimal session/organization access boundary. Do not start unrelated business features, full identity administration, production deployment, or other tickets without the developer's approval. TRD-6 is already merged.
+Current authorization covers TRD-15 warehouse/inventory operations, including the approved separate inventory-write permission and single-product whole-unit receipts with retry protection. Do not start order reservations, fulfillment, procurement, full identity administration, production deployment, or other tickets without the developer's approval. TRD-6 and TRD-13 are merged. Keep the pending mentoring-policy draft on its original documentation branch/stash, separate from this feature.
 
 ## File and code naming
 
