@@ -313,7 +313,7 @@ The final local backend run after typed SKU/name stock-conflict feedback passed 
 
 **Date and Jira ticket**
 
-2026-11-06 (Asia/Colombo). [TRD-18](https://minuraranaweera.atlassian.net/browse/TRD-18), branch `feature/TRD-18-order-lifecycle-fulfillment`, based on merged TRD-17/main `a3cb509`. Actual Jira/attachment requirements were read; the developer approved disallowing cancellation after processing starts and requiring processing before fulfillment. Backend/tests commit `ad88755`; frontend/tests commit `fb8a111`. PR/hosted status is recorded after it exists. The PR must remain unmerged and Jira must not be marked Done without approval.
+2026-11-06 (Asia/Colombo). [TRD-18](https://minuraranaweera.atlassian.net/browse/TRD-18), branch `feature/TRD-18-order-lifecycle-fulfillment`, based on merged TRD-17/main `a3cb509`. Actual Jira/attachment requirements were read; the developer approved disallowing cancellation after processing starts and requiring processing before fulfillment. Backend/tests commit `ad88755`; frontend/tests commit `fb8a111`; initial documentation `db519c1`. [PR #6](https://github.com/minuraDinupriya/tradesphere/pull/6) is open and unmerged. Hosted status is recorded when verified. The PR must remain unmerged and Jira must not be marked Done without approval.
 
 **What We Built**
 
@@ -352,6 +352,8 @@ Reuse JDBC, PostgreSQL, the existing order lock and independent order-write perm
 Executed locally: `.\mvnw.cmd -B -ntp verify` passed **16 unit + 67 real PostgreSQL/API integration tests**, none skipped; the integration total includes 14 lifecycle tests and one actual V6→V7 upgrade. `npm run lint`, `npm run test` (**58 component tests**), `npm run build`, and `npm run test:e2e` (**6 real Edge workflows**) passed. PostgreSQL tests cover all state/action pairs, duplicate/competing actions, overlapping orders/receipts, later-line rollback, deactivation, tenant/CSRF/permissions, and constraints. [Actual screenshots](evidence/TRD-18/README.md) were inspected. Exact commands and hosted results belong in [COMMAND_LOG.md](COMMAND_LOG.md) and later evidence updates.
 
 Senior **self-review** examined transaction propagation, lock ordering, conditional guards, replay after later states, scope/permissions, database tenant references, backfill accuracy, receipt compatibility, and UI uncertainty. No blocking issue remained from that review; this is not external approval or exhaustive security certification. Risks remain: database-owner tampering, live username labels, transaction-time timestamps, potential contention/deadlocks outside tested schedules, no immediate session revocation, no Firefox/Safari/load/failover/accessibility certification, and no production deployment.
+
+Hosted [run 42243359827](https://github.com/minuraDinupriya/tradesphere/actions/runs/42243359827) on `db519c1` completed successfully: both jobs, backend/PostgreSQL tests, frontend lint/tests/build/docs, real Chromium workflows, and disposable database cleanup passed. Failure-only diagnostics/artifact steps were correctly skipped, not tests. This is separate evidence from local Edge. Later documentation-only heads are checked through the PR; CI does not establish owner approval or demonstrated understanding.
 
 **Interview Questions**
 
