@@ -1,6 +1,12 @@
 import { request } from '../../shared/api/http'
 
-export type OrderStatus = 'PENDING' | 'CONFIRMED'
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'FULFILLED' | 'CANCELLED'
+export type OrderAction = 'confirm' | 'process' | 'cancel' | 'fulfill'
+export interface OrderStateEvent { id: string; fromStatus: OrderStatus | null; toStatus: OrderStatus; actorId: string; actorUsername: string; occurredAt: string; backfilled: boolean }
+export interface OrderMovement { id: string; orderId: string; warehouseId: string; productId: string; sku: string; productName: string; kind: 'RELEASE' | 'FULFILL'; quantity: number; onHandDelta: number; reservedDelta: number; actorId: string; actorUsername: string; occurredAt: string }
+export interface OrderHistory { transitions: OrderStateEvent[]; movements: OrderMovement[] }
+export const orderStatusLabels: Record<OrderStatus, string> = { PENDING: 'Pending', CONFIRMED: 'Confirmed', PROCESSING: 'Processing', FULFILLED: 'Fulfilled', CANCELLED: 'Cancelled' }
+export const orderActionLabels: Record<OrderAction, string> = { confirm: 'Confirm order', process: 'Start processing', cancel: 'Cancel order', fulfill: 'Fulfill order' }
 export interface OrderSummary {
   id: string
   requestId: string
@@ -41,4 +47,6 @@ export const orderApi = {
   get: (id: string, signal?: AbortSignal) => request<OrderDetail>(`/orders/${encodeURIComponent(id)}`, { signal }),
   create: (input: OrderInput) => request<OrderResult>('/orders', { method: 'POST', body: JSON.stringify(input) }),
   confirm: (id: string) => request<OrderResult>(`/orders/${encodeURIComponent(id)}/confirm`, { method: 'POST' }),
+  act: (id: string, action: OrderAction) => request<OrderResult>(`/orders/${encodeURIComponent(id)}/${action}`, { method: 'POST' }),
+  history: (id: string, signal?: AbortSignal) => request<OrderHistory>(`/orders/${encodeURIComponent(id)}/history`, { signal }),
 }

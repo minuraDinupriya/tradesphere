@@ -142,4 +142,8 @@ dd { margin: 0; font-size: 0.9rem; overflow-wrap: anywhere; }
 }
 .order-item-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(10rem, 15rem) auto; gap: 1rem; align-items: center; border-top: 1px solid var(--border); padding: 1.25rem 0; }
 .order-identifier { overflow-wrap: anywhere; }
+.order-action-dialog { max-width: min(32rem, calc(100vw - 2rem)); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; color: inherit; }
+.order-action-dialog::backdrop { background: rgb(15 23 42 / 45%); }
+.order-history { padding-left: 1.25rem; }
+.order-history li { margin-bottom: 0.75rem; }
 @media (max-width: 640px) { .order-item-row { grid-template-columns: 1fr; } .order-item-row .button { justify-self: start; } }

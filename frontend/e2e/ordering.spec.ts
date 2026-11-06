@@ -51,7 +51,7 @@ test('multi-item order keeps price snapshots and safely confirms all reservation
   await page.screenshot({ path: testInfo.outputPath('create-order.png'), fullPage: true })
   await page.getByRole('button', { name: 'Create pending order', exact: true }).click()
   await expect(page.getByText('Pending order created. No stock is reserved yet.', { exact: true })).toBeVisible()
-  await expect(page.getByText('Pending', { exact: true })).toBeVisible()
+  await expect(page.locator('.status-badge').filter({ hasText: /^Pending$/ })).toBeVisible()
   const orderId = new URL(page.url()).pathname.split('/').pop()!
   const lines = page.getByRole('table', { name: 'Order items and snapshotted prices', exact: true })
   await expect(lines.getByText('LKR 12.50', { exact: true })).toBeVisible()
@@ -73,6 +73,7 @@ test('multi-item order keeps price snapshots and safely confirms all reservation
     } else await route.continue()
   })
   await page.getByRole('button', { name: 'Confirm order', exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirm order', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('Confirmation may already have completed')
   await page.getByRole('button', { name: 'Retry confirmation', exact: true }).click()
   await expect(page.getByText('This order was already confirmed. Stock was not reserved again.', { exact: true })).toBeVisible()
