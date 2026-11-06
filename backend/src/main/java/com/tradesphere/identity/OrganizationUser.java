@@ -9,14 +9,19 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 public record OrganizationUser(UUID id, UUID organizationId, String organizationName, String username,
-                          String passwordHash, boolean canWriteCatalog, boolean canWriteInventory, boolean enabled) implements UserDetails {
+                          String passwordHash, boolean canWriteCatalog, boolean canWriteInventory,
+                          boolean canWriteCustomers, boolean canWritePrices, boolean enabled) implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         var permissions = new ArrayList<GrantedAuthority>();
         permissions.add(new SimpleGrantedAuthority("catalog:read"));
         permissions.add(new SimpleGrantedAuthority("inventory:read"));
+        permissions.add(new SimpleGrantedAuthority("customers:read"));
+        permissions.add(new SimpleGrantedAuthority("prices:read"));
         if (canWriteCatalog) permissions.add(new SimpleGrantedAuthority("catalog:write"));
         if (canWriteInventory) permissions.add(new SimpleGrantedAuthority("inventory:write"));
+        if (canWriteCustomers) permissions.add(new SimpleGrantedAuthority("customers:write"));
+        if (canWritePrices) permissions.add(new SimpleGrantedAuthority("prices:write"));
         return permissions;
     }
 

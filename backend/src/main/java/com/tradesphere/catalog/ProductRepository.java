@@ -83,6 +83,6 @@ public class ProductRepository {
         return new Product(rs.getObject("id", UUID.class), rs.getObject("organization_id", UUID.class),
                 rs.getString("sku"), rs.getString("name"), rs.getString("description"), rs.getString("category"),
                 rs.getString("unit_of_measure"), rs.getBoolean("active"), rs.getLong("version"),
-                rs.getTimestamp("created_at").toInstant(), rs.getTimestamp("updated_at").toInstant());
+                rs.getTimestamp("created_at").toInstant(), rs.getTimestamp("updated_at").toInstant(), rs.getBigDecimal("selling_price"));
     }
 }

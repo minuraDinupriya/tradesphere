@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import com.tradesphere.catalog.ProductConflictException;
 import com.tradesphere.catalog.ProductNotFoundException;
 import com.tradesphere.inventory.InventoryException;
+import com.tradesphere.ordering.CustomerException;
+import com.tradesphere.catalog.InvalidSellingPriceException;
 
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -19,6 +21,16 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RestControllerAdvice
 public class ApiExceptionHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    @ExceptionHandler(CustomerException.class)
+    ProblemDetail customer(CustomerException exception) {
+        return problem(exception.status(), exception.status().getReasonPhrase(), exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidSellingPriceException.class)
+    ProblemDetail price(InvalidSellingPriceException exception) {
+        return problem(HttpStatus.BAD_REQUEST, "Invalid selling price", exception.getMessage());
+    }
 
     @ExceptionHandler(InventoryException.class)
     ProblemDetail inventory(InventoryException exception) {

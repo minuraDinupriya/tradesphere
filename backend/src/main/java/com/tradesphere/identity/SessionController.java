@@ -14,9 +14,10 @@ public class SessionController {
 
     @GetMapping("/session")
     public SessionResponse session(@AuthenticationPrincipal OrganizationUser user) {
-        return new SessionResponse(user.username(), user.organizationName(), user.canWriteCatalog(), user.canWriteInventory());
+        return new SessionResponse(user.username(), user.organizationName(), user.canWriteCatalog(), user.canWriteInventory(), user.canWriteCustomers(), user.canWritePrices());
     }
 
     public record CsrfResponse(String headerName, String token) { }
-    public record SessionResponse(String username, String organizationName, boolean canWriteCatalog, boolean canWriteInventory) { }
+    public record SessionResponse(String username, String organizationName, boolean canWriteCatalog, boolean canWriteInventory,
+                                  boolean canWriteCustomers, boolean canWritePrices) { }
 }

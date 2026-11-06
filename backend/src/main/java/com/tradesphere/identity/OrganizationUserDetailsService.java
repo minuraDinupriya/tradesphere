@@ -27,7 +27,8 @@ public class OrganizationUserDetailsService implements UserDetailsService {
                 """, Map.of("username", username.strip().toLowerCase(Locale.ROOT)), (rs, row) ->
                 new OrganizationUser(rs.getObject("id", UUID.class), rs.getObject("organization_id", UUID.class),
                         rs.getString("organization_name"), rs.getString("username"), rs.getString("password_hash"),
-                        rs.getBoolean("can_write_catalog"), rs.getBoolean("can_write_inventory"), rs.getBoolean("enabled")));
+                        rs.getBoolean("can_write_catalog"), rs.getBoolean("can_write_inventory"),
+                        rs.getBoolean("can_write_customers"), rs.getBoolean("can_write_prices"), rs.getBoolean("enabled")));
         return users.stream().findFirst().orElseThrow(() -> new UsernameNotFoundException("Invalid credentials"));
     }
 }
