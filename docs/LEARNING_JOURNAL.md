@@ -253,7 +253,7 @@ Senior self-review examined tenant predicates, default-deny security routes, per
 
 **Date and Jira ticket**
 
-2026-11-06 (Asia/Colombo). [TRD-17](https://minuraranaweera.atlassian.net/browse/TRD-17), branch `feature/TRD-17-order-stock-reservation`, from merged TRD-16/main `50ff58d`. Actual Jira requirements were retrieved before implementation. Commits: backend `c72fb2b`, useful stock conflicts `d63849f`, frontend/tests `c6c1d8f`. PR/hosted evidence is recorded when available; human merge approval and demonstrated understanding are separate states.
+2026-11-06 (Asia/Colombo). [TRD-17](https://minuraranaweera.atlassian.net/browse/TRD-17), branch `feature/TRD-17-order-stock-reservation`, from merged TRD-16/main `50ff58d`. Actual Jira requirements were retrieved before implementation. Commits: backend `c72fb2b`, useful stock conflicts `d63849f`, frontend/tests `c6c1d8f`, documentation `c13dc33`. [PR #5](https://github.com/minuraDinupriya/tradesphere/pull/5) is open and unmerged. Implementation and verified results are recorded below; human merge approval and demonstrated understanding remain separate pending states.
 
 **What We Built**
 
@@ -294,7 +294,7 @@ Executed backend verification: `.\mvnw.cmd -B -ntp verify` passed **15 unit + 52
 
 Independent agent review and self-review are engineering checks, not external human approval. Limits include no general audit/tamper-proof database-role policy, reservation expiry/release, lifecycle terminal actions, quote expiry, full session revocation, exhaustive accessibility/load/failover testing, or production deployment. Pending creation retry state does not survive navigation/reload; reconcile the list before replacement. No learner understanding is claimed.
 
-The final local backend run after typed SKU/name stock-conflict feedback passed all 67 tests again. [Actual browser screenshots](evidence/TRD-17/README.md) were inspected, including 390px detail/table behavior. Hosted execution is still a separate check, not inferred from the passing local runs.
+The final local backend run after typed SKU/name stock-conflict feedback passed all 67 tests again. [Actual browser screenshots](evidence/TRD-17/README.md) were inspected, including 390px detail/table behavior. Hosted [run 42237984860](https://github.com/minuraDinupriya/tradesphere/actions/runs/42237984860) on `c13dc33` completed successfully: frontend install/lint/tests/build/documentation checks, backend/PostgreSQL tests, real Chromium workflows, and database cleanup passed. This is separate hosted evidence from local Edge. Later documentation-only heads can be checked in the PR; CI does not establish human approval or learner understanding.
 
 **Interview Questions**
 
