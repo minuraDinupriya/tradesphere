@@ -76,7 +76,7 @@ Non-fatal Maven repository-metadata and Mockito agent warnings appeared during s
 
 **Date and Jira ticket**
 
-2026-11-06 (Asia/Colombo). TRD-13, with branch `feature/TRD-13-product-catalog`, started from merged TRD-6 (`5facf9a`). Jira URL is not known. Backend commit: `40482c6`; frontend/browser-validation commit: `ae236b8`. PR reference will be recorded when available.
+2026-11-06 (Asia/Colombo). TRD-13, with branch `feature/TRD-13-product-catalog`, started from merged TRD-6 (`5facf9a`). Jira URL is not known. Commits: backend `40482c6`, frontend/browser validation `ae236b8`, documentation `20b64f4`. [PR #2](https://github.com/minuraDinupriya/tradesphere/pull/2) is open and unmerged.
 
 **What We Built**
 
@@ -116,7 +116,9 @@ Retain JDBC/immutable records rather than adding an ORM for this slice. Use one 
 
 Verification actually executed: `.\mvnw.cmd -B -ntp verify` from `backend/` passed **4 unit + 12 integration tests**; `npm run lint`, `npm run test`, and `npm run build` from `frontend/` passed after the documented fixes (**11 component tests**). `npm run test:e2e` passed **2 real browser tests** using installed Edge and a separate PostgreSQL test database; this included desktop/mobile screenshots and a no-page-overflow check. Actionlint passed static CI validation. See [COMMAND_LOG.md](COMMAND_LOG.md) for exact commands, flags, directories, repeated-run results, and current hosted CI status.
 
-Uncovered risks: Firefox/Safari were not run; this is not exhaustive accessibility testing or production hardening. No benchmarks, inventory transactions, production deployment, or external reviewer approval are claimed. Local Edge success is distinct from the CI Chromium result, which must be verified separately.
+[Hosted CI run 42215790048](https://github.com/minuraDinupriya/tradesphere/actions/runs/42215790048) for implementation/documentation commit `20b64f4` completed successfully: frontend install/lint/tests/build/documentation checks, backend/PostgreSQL tests, real Chromium workflow, and disposable database cleanup all passed. This is separate evidence from local Edge verification. Developer review and merge approval remain outstanding.
+
+Uncovered risks: Firefox/Safari were not run; this is not exhaustive accessibility testing or production hardening. No benchmarks, inventory transactions, production deployment, or external reviewer approval are claimed.
 
 **Interview Questions**
 
