@@ -1,0 +1,63 @@
+:root {
+  font-family: Inter, 'Segoe UI', system-ui, sans-serif;
+  color: #1b3032;
+  background: #f5f7f6;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+a { color: inherit; }
+a:focus-visible { outline: 3px solid #b36a16; outline-offset: 5px; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { font-size: clamp(2rem, 4vw, 3.5rem); line-height: 1.15; letter-spacing: -0.04em; max-width: 750px; }
+h2 { font-size: 1.3rem; letter-spacing: -0.02em; margin-bottom: 0; }
+h3 { font-size: 1.2rem; margin: 1.3rem 0 0.5rem; }
+.app-shell { display: flex; min-height: 100dvh; }
+.sidebar { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; padding: 2rem 1.5rem; background: #123b38; color: #f4faf8; }
+.brand { display: flex; align-items: center; gap: 0.7rem; font-size: 1.35rem; font-weight: 700; text-decoration: none; }
+.brand-mark { width: 36px; height: 36px; display: grid; place-items: center; color: #123b38; background: #cfdfb3; border-radius: 10px; }
+.workspace-label { margin: 1rem 0 3rem; font-size: 0.8rem; color: #bad0cb; }
+.nav-link { display: block; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; }
+.nav-link.active { background: #28514c; font-weight: 600; }
+.sidebar-note { margin: auto 0 0; padding-top: 2rem; color: #bad0cb; font-size: 0.75rem; }
+.workspace { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.25rem 3rem; background: white; border-bottom: 1px solid #dce5e1; font-size: 0.85rem; }
+.status-label, .planned-label { display: inline-block; background: #eef3e7; color: #43582f; border-radius: 6px; padding: 0.2rem 0.6rem; font-size: 0.75rem; font-weight: 600; }
+main { padding: 3rem; width: 100%; max-width: 1400px; margin: 0 auto; flex: 1; }
+.welcome-panel { padding: 2.5rem; background: white; border: 1px solid #dce5e1; border-radius: 16px; margin-bottom: 2.5rem; }
+.eyebrow { text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.14em; font-weight: 700; color: #397368; margin-bottom: 1.25rem; }
+.welcome-description { color: #5d6f6c; max-width: 560px; font-size: 1.05rem; }
+.notice { border-left: 3px solid #719a62; background: #f5f8f1; margin-top: 2rem; padding: 1rem 1.25rem; max-width: 680px; }
+.notice p { margin: 0.3rem 0 0; font-size: 0.9rem; color: #4c6254; }
+.section-heading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+.section-heading span { color: #637570; font-size: 0.8rem; }
+.capability-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.capability-card { background: white; border: 1px solid #dce5e1; border-radius: 12px; padding: 1.5rem; }
+.capability-card p { margin-bottom: 0; color: #637570; font-size: 0.9rem; }
+.text-link { color: #23695b; font-weight: 600; }
+footer { padding: 1.5rem 3rem; color: #637570; font-size: 0.75rem; }
+.skip-link { position: absolute; left: 1rem; top: -100px; background: white; padding: 0.6rem 1rem; z-index: 10; }
+.skip-link:focus { top: 1rem; }
+
+@media (max-width: 900px) {
+  .sidebar { width: 220px; padding: 1.5rem 1rem; }
+  .topbar, footer { padding-left: 1.5rem; padding-right: 1.5rem; }
+  main { padding: 1.5rem; }
+  .welcome-panel { padding: 1.75rem; }
+  .capability-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .app-shell { flex-direction: column; }
+  .sidebar { width: 100%; padding: 1rem 1.25rem; }
+  .workspace-label { margin: 0.4rem 0 1rem; }
+  .sidebar-note { display: none; }
+  .topbar { padding: 1rem 1.25rem; }
+  main { padding: 1.25rem; }
+  .welcome-panel { padding: 1.5rem; }
+}
