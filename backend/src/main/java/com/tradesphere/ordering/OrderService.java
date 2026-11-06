@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import com.tradesphere.catalog.CatalogProductAccess;
 import com.tradesphere.inventory.InventoryOrderAccess;
+import com.tradesphere.inventory.InsufficientStockException;
 
 @Service
 public class OrderService {
@@ -49,8 +50,13 @@ public class OrderService {
         var items = orders.items(organizationId, id);
         var currentProducts = products.lockForOrder(organizationId, items.stream().map(OrderItem::productId).toList());
         if (currentProducts.stream().anyMatch(product -> !product.active())) throw conflict("Only active products can be confirmed.");
-        inventory.reserve(organizationId, id, order.warehouseId(), actorId,
-                items.stream().map(item -> new InventoryOrderAccess.ReservationItem(item.productId(), item.quantity())).toList());
+        try {
+            inventory.reserve(organizationId, id, order.warehouseId(), actorId,
+                    items.stream().map(item -> new InventoryOrderAccess.ReservationItem(item.productId(), item.quantity())).toList());
+        } catch (InsufficientStockException failure) {
+            var unavailable = items.stream().filter(item -> item.productId().equals(failure.productId())).findFirst().orElseThrow();
+            throw conflict("Insufficient available stock for " + unavailable.sku() + " (" + unavailable.productName() + "). No items were reserved.");
+        }
         orders.confirm(organizationId, id, actorId);
         return new Result(detail(organizationId, orders.find(organizationId, id, false).orElseThrow()), false);
     }

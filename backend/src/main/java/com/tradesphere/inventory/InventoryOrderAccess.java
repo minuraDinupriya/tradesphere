@@ -39,8 +39,7 @@ public class InventoryOrderAccess {
                     WHERE organization_id = :organizationId AND warehouse_id = :warehouseId AND product_id = :productId
                       AND on_hand - reserved >= :quantity
                     """, parameters);
-            if (changed == 0) throw new InventoryException(HttpStatus.CONFLICT,
-                    "Insufficient available stock for product " + item.productId() + ". No stock was reserved for this order.");
+            if (changed == 0) throw new InsufficientStockException(item.productId());
             jdbc.update("""
                     INSERT INTO tradesphere.stock_reservations (organization_id, order_id, warehouse_id, product_id, quantity, reserved_by)
                     VALUES (:organizationId, :orderId, :warehouseId, :productId, :quantity, :actorId)

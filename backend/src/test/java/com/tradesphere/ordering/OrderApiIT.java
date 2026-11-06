@@ -245,7 +245,9 @@ class OrderApiIT {
         stock(ordered.get(0), 10); stock(ordered.get(1), 1);
         var client = signedIn(writer);
         var order = create(client, List.of(item(ordered.get(0), 4), item(ordered.get(1), 2)));
-        assertThat(confirm(client, id(order)).statusCode()).isEqualTo(409);
+        var response = confirm(client, id(order));
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(json(response).path("detail").asString()).contains(ordered.get(1).sku(), ordered.get(1).name(), "No items were reserved");
         assertBalance(ordered.get(0), 10, 0, 10);
         assertBalance(ordered.get(1), 1, 0, 1);
         assertPending(id(order));
