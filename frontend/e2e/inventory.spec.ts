@@ -56,10 +56,13 @@ test('warehouse operations and retry-safe stock receipt update inventory and mov
   await expect(balanceRow.getByRole('cell').nth(5)).toHaveText('20')
 
   await page.getByRole('link', { name: 'Receive stock' }).click()
-  await page.getByLabel(/^Warehouse/).selectOption(warehouseId)
+  await expect(page.getByRole('heading', { name: 'Receive stock', exact: true })).toBeVisible()
+  const receiptFields = page.getByRole('group', { name: 'Stock receipt', exact: true })
+  await receiptFields.getByLabel(/^Warehouse/).selectOption(warehouseId)
   await page.getByLabel('Find an active product').fill(sku)
   await page.getByRole('button', { name: 'Find products', exact: true }).click()
   await page.getByLabel(/^Product/).selectOption({ label: `${productName} (${sku})` })
+  await expect(receiptFields.getByLabel(/^Warehouse/)).toHaveValue(warehouseId)
   await page.getByLabel('Quantity received', { exact: false }).fill('5')
   await page.getByLabel('Reference', { exact: true }).fill(retryReference)
   // Prove native validation permits submission before simulating a lost response.
