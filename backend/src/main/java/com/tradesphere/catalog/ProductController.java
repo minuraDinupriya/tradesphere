@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.tradesphere.identity.CatalogUser;
+import com.tradesphere.identity.OrganizationUser;
 
 @RestController
 @Validated
@@ -31,25 +31,25 @@ public class ProductController {
     public ProductController(ProductService products) { this.products = products; }
 
     @PostMapping
-    public ResponseEntity<ProductResponse> create(@AuthenticationPrincipal CatalogUser user,
+    public ResponseEntity<ProductResponse> create(@AuthenticationPrincipal OrganizationUser user,
                                                   @Valid @RequestBody CreateProductRequest request) {
         var product = products.create(user.organizationId(), request.values());
         return ResponseEntity.created(URI.create("/api/v1/products/" + product.id())).body(ProductResponse.from(product));
     }
 
     @GetMapping("/{id}")
-    public ProductResponse get(@AuthenticationPrincipal CatalogUser user, @PathVariable UUID id) {
+    public ProductResponse get(@AuthenticationPrincipal OrganizationUser user, @PathVariable UUID id) {
         return ProductResponse.from(products.get(user.organizationId(), id));
     }
 
     @PutMapping("/{id}")
-    public ProductResponse update(@AuthenticationPrincipal CatalogUser user, @PathVariable UUID id,
+    public ProductResponse update(@AuthenticationPrincipal OrganizationUser user, @PathVariable UUID id,
                                    @Valid @RequestBody UpdateProductRequest request) {
         return ProductResponse.from(products.update(user.organizationId(), id, request.values(), request.version()));
     }
 
     @GetMapping
-    public ProductPageResponse list(@AuthenticationPrincipal CatalogUser user,
+    public ProductPageResponse list(@AuthenticationPrincipal OrganizationUser user,
                                     @RequestParam(defaultValue = "") @Size(max = 100) String q,
                                     @RequestParam(defaultValue = "") @Size(max = 80) String category,
                                     @RequestParam(required = false) Boolean active,
@@ -61,7 +61,7 @@ public class ProductController {
     }
 
     @GetMapping("/categories")
-    public List<String> categories(@AuthenticationPrincipal CatalogUser user) { return products.categories(user.organizationId()); }
+    public List<String> categories(@AuthenticationPrincipal OrganizationUser user) { return products.categories(user.organizationId()); }
 
     public record ProductPageResponse(List<ProductResponse> items, long totalElements, int page, int size, int totalPages) { }
 }

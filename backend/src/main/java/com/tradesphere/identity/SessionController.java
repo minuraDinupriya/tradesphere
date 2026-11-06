@@ -13,10 +13,10 @@ public class SessionController {
     public CsrfResponse csrf(CsrfToken token) { return new CsrfResponse(token.getHeaderName(), token.getToken()); }
 
     @GetMapping("/session")
-    public SessionResponse session(@AuthenticationPrincipal CatalogUser user) {
-        return new SessionResponse(user.username(), user.organizationName(), user.canWriteCatalog());
+    public SessionResponse session(@AuthenticationPrincipal OrganizationUser user) {
+        return new SessionResponse(user.username(), user.organizationName(), user.canWriteCatalog(), user.canWriteInventory());
     }
 
     public record CsrfResponse(String headerName, String token) { }
-    public record SessionResponse(String username, String organizationName, boolean canWriteCatalog) { }
+    public record SessionResponse(String username, String organizationName, boolean canWriteCatalog, boolean canWriteInventory) { }
 }
