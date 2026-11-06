@@ -137,7 +137,7 @@ Uncovered risks: Firefox/Safari were not run; this is not exhaustive accessibili
 
 **Date and Jira ticket**
 
-2026-11-06 (Asia/Colombo). [TRD-15](https://minuraranaweera.atlassian.net/browse/TRD-15), branch `feature/TRD-15-warehouse-inventory`, based on merged TRD-13 (`7d7b048`). Commits: backend `baafab3`, frontend/tests `91ef466`. Implementation and local verification are recorded below; PR review/merge and demonstrated developer understanding remain separate outstanding states. The earlier mentoring-policy draft remains in its named stash, separate from this deliverable.
+2026-11-06 (Asia/Colombo). [TRD-15](https://minuraranaweera.atlassian.net/browse/TRD-15), branch `feature/TRD-15-warehouse-inventory`, based on merged TRD-13 (`7d7b048`). Commits: backend `baafab3`, frontend/tests `91ef466`, documentation `191d610`, browser diagnostics `6ee82be`. [PR #3](https://github.com/minuraDinupriya/tradesphere/pull/3) is open and unmerged. Implementation and verification are recorded below; developer review/merge and demonstrated understanding remain separate outstanding states. The earlier mentoring-policy draft remains in its named stash, separate from this deliverable.
 
 **What We Built**
 
@@ -176,6 +176,8 @@ Keep JDBC, one PostgreSQL transaction, and existing React styles; no broker/cach
 Actual verification: backend `.\mvnw.cmd -B -ntp verify` passed **8 unit + 23 PostgreSQL/API tests**, none skipped. Frontend `npm run lint`, `npm run test` (**22 component tests**), and `npm run build` passed. `npm run test:e2e` passed **3 real Edge tests**, including a server-committed receipt with a deliberately dropped response and same-ID recovery (25 total units, not 30). `npm run test -- src/features/inventory/Inventory.test.tsx` failed for the new regression before the fix, then passed all 11 inventory tests. Exact commands/directories and other checks are in [COMMAND_LOG.md](COMMAND_LOG.md).
 
 Uncovered: order lifecycle correctness, Firefox/Safari, exhaustive accessibility/load/failover testing, immediate permission revocation, durable retry drafts, and production deployment. Inventory-specific Figma previews could not be inspected; actual browser screenshots were reviewed using the established visual system. No external review or learner understanding is claimed.
+
+Hosted verification: [initial run 42227320592](https://github.com/minuraDinupriya/tradesphere/actions/runs/42227320592) passed backend and frontend checks but its inventory browser test timed out waiting for the uncertain-response alert. The logs did not identify the root cause and no browser artifact was retained. A fresh local database (`tradesphere_trd15_ci_repro`) passed all three Edge workflows. Added a native-form-validity assertion and failure-only trace artifact retention; [run 42227941405](https://github.com/minuraDinupriya/tradesphere/actions/runs/42227941405) on `6ee82be` passed both jobs, including real Chromium workflows and database cleanup. **The earlier intermittent browser failure remains unexplained; a passing subsequent run is not proof its root cause was fixed.** Future failures now retain evidence. See the latest PR checks for subsequent documentation-only heads.
 
 **Interview Questions**
 
