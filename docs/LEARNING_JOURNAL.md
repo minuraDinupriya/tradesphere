@@ -6,7 +6,7 @@ Completed entries are chronological, oldest first, grouped by meaningful Jira is
 
 **Date and Jira ticket**
 
-2026-11-06 (Asia/Colombo). TRD-6 — TradeSphere Engineering Foundation. The issue key was supplied by the developer; its Jira URL is unknown. Branch: `chore/TRD-6-engineering-foundation`. Commits: minimal README bootstrap `3a9adfb`, backend foundation `4da3b6a`, frontend foundation `ccb0dc2`. PR reference will be added when available.
+2026-11-06 (Asia/Colombo). TRD-6 — TradeSphere Engineering Foundation. The issue key was supplied by the developer; its Jira URL is unknown. Branch: `chore/TRD-6-engineering-foundation`. Commits: minimal README bootstrap `3a9adfb`, backend foundation `4da3b6a`, frontend foundation `ccb0dc2`, CI/documentation `c5fefcc`. [PR #1](https://github.com/minuraDinupriya/tradesphere/pull/1) is open and unmerged.
 
 **What We Built**
 
@@ -54,7 +54,8 @@ Actual verification (from repository root unless stated):
 - From `backend/`, `& "$env:JAVA_HOME\bin\java.exe" -jar target/tradesphere-0.0.1-SNAPSHOT.jar`: initially failed on the history-schema issue; after the fix, started on port 8080 and found V1 already applied. HTTP health returned 200 with `UP`.
 - From `frontend/`, `npm install --package-lock-only`, `npm ci`, `npm run lint`, `npm run test`, `npm run build`: passed; **3 frontend tests passed**, including route recovery. TypeScript and the production bundle build passed.
 - From `frontend/`, `npm run dev`: started at port 5173. `Invoke-WebRequest` to `/` and `/src/main.tsx` returned 200. A browser accessibility snapshot and screenshot confirmed the rendered preview; mobile layout and Stitch fidelity were not verified.
-- `.\.local\actionlint\actionlint.exe -color .github/workflows/ci.yml`: passed using temporary ignored actionlint 1.7.12. PowerShell relative-link checks and `git diff --check` passed. GitHub-hosted CI execution is pending PR creation; static validation is not a hosted CI result.
+- `.\.local\actionlint\actionlint.exe -color .github/workflows/ci.yml`: passed using temporary ignored actionlint 1.7.12. PowerShell relative-link checks (63 links after this entry) and `git diff --check` passed.
+- [GitHub-hosted CI run 42207823947](https://github.com/minuraDinupriya/tradesphere/actions/runs/42207823947) for implementation commit `c5fefcc`: both backend/PostgreSQL and frontend jobs completed successfully. The Ubuntu runner started a fresh Compose database, ran `./mvnw -B -ntp verify`, then cleaned up; frontend `npm ci`, lint, tests, and build also passed. This establishes hosted CI execution, not production deployment or user acceptance.
 
 Non-fatal Maven repository-metadata and Mockito agent warnings appeared during successful verification. No benchmarks, inventory concurrency tests, authentication tests, or production deployment were performed; those behaviors do not exist in this milestone.
 
