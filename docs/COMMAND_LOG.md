@@ -1,5 +1,21 @@
 # Command log
 
+## 2026-11-06 — TRD-19 local implementation and hosted verification
+
+Hosted [run 42247511871](https://github.com/minuraDinupriya/tradesphere/actions/runs/42247511871) on `214cf81` passed all three jobs: PostgreSQL/backend, real Chromium workflows, frontend/docs, image build, 512 MB container readiness/SPA/API-denial smoke test, and cleanup. Failure-only diagnostics were skipped as intended. Public deployment remains unapproved/unverified.
+
+Root: `git add backend frontend .github/workflows/ci.yml Dockerfile .dockerignore`, `git diff --cached --check`, `git commit -m 'feat(dashboard): add scoped overview and demo container checks (TRD-19)'` succeeded as `7fccbab`. `git add AGENTS.md README.md CHANGELOG.md docs`, `git commit -m 'docs(release): prepare demo runbook and learning evidence (TRD-19)'`, `git push -u origin feature/TRD-19-mvp-release-readiness` succeeded as `214cf81`. `pwsh -File .local/trd19-github.ps1 -Action create` opened [PR #7](https://github.com/minuraDinupriya/tradesphere/pull/7), unmerged; `-Action status` verified hosted results. Existing Git authentication stays in memory in the ignored helper.
+
+After hosted container success, `Get-CimInstance Win32_Process` selected only `docker.exe` matching `build -t tradesphere:trd19`; `Stop-Process -Id $buildProcess.ProcessId` stopped the redundant slow download. Local image build is cancelled, not passed. No provider provisioning, deployment, tag, release, or merge command ran. A documentation-replacement array was flattened unexpectedly, changing backticks; restored only this agent-edited log from `git show HEAD:docs/COMMAND_LOG.md` and applied a targeted patch before committing, then checked the diff/links.
+
+Root is `C:\Users\minura\Downloads\TradeSphere`; Backend/Frontend mean its corresponding subdirectories. Only actual commands below are execution evidence; release/deployment commands in guides remain suggestions.
+
+- Root: `git fetch origin`, `git log -3 --oneline origin/main`, `git merge-base --is-ancestor 35a2c3f origin/main` — fetch/log succeeded; ancestry returned 1 because TRD-18 was squash merged as `a31044b`. `git switch main`, `git merge --ff-only origin/main`, `git switch -c feature/TRD-19-mvp-release-readiness` succeeded. `--ff-only` refuses divergent history; `-c` creates the branch.
+- Backend: `$env:JAVA_HOME = 'C:\Users\minura\.jdks\jbr-21.0.11'`, `$env:Path = "$env:JAVA_HOME\bin;$env:Path"`, `.\mvnw.cmd -B -ntp verify` — passed 16 unit + 69 real PostgreSQL/API integration tests, none skipped, after dashboard/API coverage. `-B` is batch mode; `-ntp` suppresses transfer progress. Output captured in ignored `.local/trd19-backend.log`, with exit code preserved. Analogy: verify checks both ledger rules and real stock-room transactions.
+- Frontend: `npm run lint`, `npm run test`, `npm run build` — passed; 61 component tests and TypeScript/production bundle checks. `npm run test:e2e` with Java 21, `E2E_BROWSER=msedge`, `E2E_POSTGRES_DB=tradesphere_trd18_e2e`, and an ignored disposable password loaded via `Get-Content` — all six real Edge journeys passed. Output captured in `.local/trd19-browser.log`; no password printed. Existing isolated fictional database reused without destructive reset.
+- Root: Docker Desktop CLI added to process PATH; `docker compose config --quiet` passed. `docker build -t tradesphere:trd19 .` downloaded slowly into `.local/trd19-docker-build.log` and was cancelled after hosted container success. `-t` labels the local image; nothing is published. Analogy: compilation tools stay in the workshop, while the final delivery box contains only the runtime.
+- Root: `git diff --check`, `pwsh -File scripts/check-doc-links.ps1`, `.\.local\actionlint\actionlint.exe -color .github/workflows/ci.yml` passed at preparation. Link validation excludes remote URLs/anchors; Actionlint is not hosted execution. Screenshots copied with `Copy-Item` and inspected. Further container/PR/hosted outcomes will be recorded when available.
+
 Important commands actually executed for significant milestones. Paths below are relative to repository root `C:\Users\minura\Downloads\TradeSphere`. This log summarizes repeated runs; it is not a full terminal transcript. Suggested commands belong in the README, not in the executed-results list.
 
 ## 2026-11-06 — TRD-13 product catalog

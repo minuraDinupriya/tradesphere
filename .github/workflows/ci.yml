@@ -10,6 +10,37 @@ permissions:
   contents: read
 
 jobs:
+  container:
+    name: Demo container build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build same-origin demo image
+        run: docker build -t tradesphere:ci .
+      - name: Verify packaged demo readiness and API boundary
+        run: |
+          export POSTGRES_DB=tradesphere_container_ci POSTGRES_USER=tradesphere_ci
+          export POSTGRES_PASSWORD=$(openssl rand -hex 24)
+          echo "::add-mask::$POSTGRES_PASSWORD"
+          docker compose up -d --wait --wait-timeout 90
+          docker run -d --name tradesphere-demo --network tradesphere_default -p 127.0.0.1:8082:8080 --memory=512m \
+            -e DATABASE_JDBC_URL=jdbc:postgresql://postgres:5432/tradesphere_container_ci \
+            -e DATABASE_USERNAME="$POSTGRES_USER" -e DATABASE_PASSWORD="$POSTGRES_PASSWORD" \
+            -e BOOTSTRAP_ENABLED=false tradesphere:ci
+          ready=false
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8082/actuator/health/readiness; then ready=true; break; fi
+            sleep 2
+          done
+          test "$ready" = true
+          curl --fail --silent http://127.0.0.1:8082/dashboard | grep -q '<div id="root">'
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8082/api/v1/dashboard)" = 401
+      - name: Clean up demo containers
+        if: always()
+        run: |
+          docker rm -f tradesphere-demo || true
+          POSTGRES_DB=tradesphere_container_ci POSTGRES_USER=tradesphere_ci POSTGRES_PASSWORD=unused docker compose down --volumes
   backend:
     name: Backend, PostgreSQL and browser workflow
     runs-on: ubuntu-latest

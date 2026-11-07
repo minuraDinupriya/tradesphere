@@ -1,5 +1,6 @@
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppLayout } from './app/AppLayout'
+import { DashboardPage } from './features/dashboard/DashboardPage'
 import { ProductDetailsPage } from './features/catalog/ProductDetailsPage'
 import { ProductFormPage } from './features/catalog/ProductFormPage'
 import { ProductListPage } from './features/catalog/ProductListPage'
@@ -29,7 +30,8 @@ function App() {
 
   return <Routes>
     <Route element={<AppLayout />}>
-      <Route index element={<Navigate to="/products" replace />} />
+      <Route index element={<Navigate to="/dashboard" replace />} />
+      <Route path="dashboard" element={<DashboardPage />} />
       <Route path="products" element={<ProductListPage />} />
       <Route path="products/new" element={<ProductFormPage key="new" />} />
       <Route path="products/:id/edit" element={<ProductFormPage key={location.pathname} />} />

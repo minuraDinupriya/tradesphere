@@ -10,6 +10,11 @@
   --border: #e4e7ef;
   --muted: #667085;
 }
+.dashboard-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }
+.dashboard-metrics .form-card { margin: 0; }
+.metric-value { margin: 0.5rem 0 0; font-size: 2rem; font-weight: 700; }
+.dashboard-orders { padding-left: 1.25rem; overflow-wrap: anywhere; }
+.dashboard-orders li { margin-bottom: 1rem; }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; line-height: 1.5; }
 button, input, select, textarea { font: inherit; }

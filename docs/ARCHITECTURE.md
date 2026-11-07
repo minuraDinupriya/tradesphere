@@ -4,6 +4,10 @@ Status: **TRD-6/TRD-13/TRD-15/TRD-16/TRD-17 are merged; TRD-18 adds order lifecy
 
 ## Application shape
 
+TRD-19 adds a read-only Dashboard projection using three bounded, organization-scoped JDBC queries in a repeatable-read transaction. It deliberately reads existing capability tables without mutating them or duplicating business rules. Counts distinguish active master data, all warehouses/orders, and recorded zero-availability balances; quantities across unlike units are never summed. Existing created-at/organization indexes support recent-order retrieval. No cache/materialized aggregate is introduced without evidence of a need. See [API semantics](api/DASHBOARD.md).
+
+The proposed demo container packages React assets with Spring Boot for a single origin, retaining session/CSRF protections. Runtime is non-root; build tools remain in build stages. Secure cookies and trusted ingress forwarding belong to the explicit demo profile. Container CI builds and smoke-checks readiness, SPA fallback, and anonymous API denial. Remote deployment remains unapproved/unverified; see [deployment](DEPLOYMENT.md).
+
 Use a modular monolith: one backend deployment, organized by business capability with explicit module ownership. This keeps transactions and local development manageable for a solo developer while providing practice in clear boundaries. Microservices would introduce network failure modes, distributed transactions, and deployment overhead before the business workflow needs them.
 
 React with TypeScript calls Spring Boot session/catalog/customer/inventory/order HTTP APIs. Modules use explicit JDBC persistence and immutable records; no ORM is required for these slices. API naming follows the workflow. The [catalog decision](decisions/0002-product-catalog-and-session-access.md), [inventory decision](decisions/0003-warehouse-inventory.md), and [order decision](decisions/0005-order-reservation.md) explain data flow/tradeoffs. Shared HTTP exception translation lives in `com.tradesphere.api`.

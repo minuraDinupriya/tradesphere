@@ -4,6 +4,8 @@ For each substantial Jira feature, derive important scenarios from its requireme
 
 ## Approach
 
+TRD-19 adds real PostgreSQL dashboard count/tenant/empty/status coverage, anonymous and read-only API checks, component loading/empty/error/refresh coverage, and dashboard totals/status navigation after the real lifecycle browser journey. Container CI separately builds the packaged same-origin application and checks readiness, frontend routing, and API denial with a 512 MB runtime limit. These do not establish remote TLS, backup recovery, load capacity, or a successful public deployment.
+
 - Write appropriate automated tests alongside production code. Prefer a failing-test-first approach for well-defined business rules where practical; do not claim TDD was used when it was not.
 - Unit-test meaningful business behavior without a database or HTTP server.
 - Use real PostgreSQL integration tests for migrations, constraints, persistence, transactions, isolation, and concurrency. An in-memory database is not evidence of PostgreSQL correctness.

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ErrorState, LoadingState } from '../../shared/components/Feedback'
 import { useRemoteData } from '../../shared/hooks/useRemoteData'
 import { formatLkr } from '../catalog/sellingPriceApi'
@@ -10,9 +10,12 @@ import type { OrderFilters } from './orderApi'
 
 export function OrderListPage() {
   const { user } = useAuth()
+  const [parameters] = useSearchParams()
+  const initialStatus = parameters.get('status') ?? ''
+  const validStatus = Object.hasOwn(orderStatusLabels, initialStatus) ? initialStatus : ''
   const [q, setQ] = useState('')
-  const [status, setStatus] = useState('')
-  const [filters, setFilters] = useState<OrderFilters>({ q: '', status: '', page: 0, size: 20 })
+  const [status, setStatus] = useState(validStatus)
+  const [filters, setFilters] = useState<OrderFilters>({ q: '', status: validStatus, page: 0, size: 20 })
   const load = useCallback((signal: AbortSignal) => orderApi.list(filters, signal), [filters])
   const result = useRemoteData(load)
 

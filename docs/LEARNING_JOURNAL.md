@@ -313,7 +313,7 @@ The final local backend run after typed SKU/name stock-conflict feedback passed 
 
 **Date and Jira ticket**
 
-2026-11-06 (Asia/Colombo). [TRD-18](https://minuraranaweera.atlassian.net/browse/TRD-18), branch `feature/TRD-18-order-lifecycle-fulfillment`, based on merged TRD-17/main `a3cb509`. Actual Jira/attachment requirements were read; the developer approved disallowing cancellation after processing starts and requiring processing before fulfillment. Backend/tests commit `ad88755`; frontend/tests commit `fb8a111`; initial documentation `db519c1`. [PR #6](https://github.com/minuraDinupriya/tradesphere/pull/6) is open and unmerged. Hosted status is recorded when verified. The PR must remain unmerged and Jira must not be marked Done without approval.
+2026-11-06 (Asia/Colombo). [TRD-18](https://minuraranaweera.atlassian.net/browse/TRD-18), branch `feature/TRD-18-order-lifecycle-fulfillment`, based on merged TRD-17/main `a3cb509`. Actual Jira/attachment requirements were read; the developer approved disallowing cancellation after processing starts and requiring processing before fulfillment. Backend/tests commit `ad88755`; frontend/tests commit `fb8a111`; initial documentation `db519c1`. [PR #6](https://github.com/minuraDinupriya/tradesphere/pull/6) was subsequently verified squash-merged on main as a31044b before TRD-19. Earlier verification below records TRD-18 execution; no developer understanding is inferred from the merge.
 
 **What We Built**
 
@@ -367,3 +367,33 @@ Hosted [run 42243359827](https://github.com/minuraDinupriya/tradesphere/actions/
 
 1. Explain why a processing order rejects cancellation and why a repeated processing request after fulfillment may still return success. Identify “new transition” versus “replay” in the real service.
 2. Start with on-hand 10/reserved 4. Predict the balances after cancellation versus fulfillment, then trace one failure after an earlier item write through the PostgreSQL rollback test. These are suggested exercises; developer understanding has not yet been demonstrated.
+
+## 2026-11-06 — TRD-19: Dashboard and MVP release preparation
+
+Deployment decision: after reviewing the $13.30/month Render baseline proposal, the developer explicitly chose **keep deployment local for now**. Remote deployment acceptance is deferred; no paid resource or public URL was created. Continue local use and preserve the proposal for later reconsideration, without treating it as approval.
+
+**Date and Jira ticket:** [TRD-19](https://minuraranaweera.atlassian.net/browse/TRD-19), branch `feature/TRD-19-mvp-release-readiness`, from merged TRD-18 `a31044b`. Actual Jira/attachment read. Public deployment, spending, tag publication, and merge remain unapproved; this entry records implemented local work, not a deployed release.
+
+**What We Built:** a real organization-scoped operational dashboard, recent orders/status links, loading/empty/error/refresh states, and a non-root same-origin demo container/profile. Added deployment/recovery guidance, unreleased v0.1.0 notes, and an interview demo guide. Existing business workflows remain intact. Container/hosted results are recorded separately when executed.
+
+**Concepts I Should Understand:** read-only projections combine existing business data without taking ownership of mutations. Repeatable read keeps several SQL queries on one database snapshot; refresh obtains another. A Docker multi-stage build uses a temporary workshop for compilation and ships only the runtime. Same-origin hosting simplifies cookies/CSRF, while HTTPS/Secure cookies and trusted ingress remain necessary.
+
+**Real-World Analogy:** the dashboard is a clerk's summary copied from one version of the store ledger. Reading each page at a different moment could produce inconsistent totals. A container is a packed delivery box; the tools that built its contents need not travel inside it.
+
+**How It Works Internally:** [DashboardPage](../frontend/src/features/dashboard/DashboardPage.tsx) uses the existing abortable read hook and [typed API](../frontend/src/features/dashboard/dashboardApi.ts). [DashboardController](../backend/src/main/java/com/tradesphere/dashboard/DashboardController.java) derives organization from the session, and [DashboardService](../backend/src/main/java/com/tradesphere/dashboard/DashboardService.java) executes three scoped queries within a repeatable-read transaction. [Dockerfile](../Dockerfile) builds React into the jar; the demo profile and explicit frontend fallback retain separate API security.
+
+**Engineering Decisions:** no fake low-stock threshold, summed unlike units, cache, broker, or UI framework. Count recorded zero-availability balances explicitly; label inactive inclusion/unrecorded exclusion. Use bounded recent orders instead of inventing a general activity stream. [Decision 0007](decisions/0007-dashboard-and-demo-packaging.md) records alternatives. [Deployment](DEPLOYMENT.md) compares expiring free hosting versus paid persistence; provider approval is separate from local preparation.
+
+**Problems and Debugging:** initial command-ancestry check returned 1 because TRD-18 was squash merged, not because its implementation was absent; verified main's actual squash commit. An attempted journal patch used a mismatched heading and applied nothing; corrected the insertion context. Base-image downloads were slow locally; the redundant local build was cancelled only after the hosted container build and smoke checks passed. No production incident is invented.
+
+Local verification so far: Maven `verify` passed **16 unit + 69 PostgreSQL/API tests**, none skipped; frontend lint/build and **61 component tests** passed; **six real Edge workflows** passed, including post-lifecycle dashboard totals/status navigation. Tests cover tenant isolation, read-only/anonymous boundaries, inactive/zero-balance semantics, all five status totals, empty data, refresh, and failures. Desktop/mobile screenshots were inspected. Hosted run 42247511871 on 214cf81 passed all three jobs: backend/PostgreSQL/browser, frontend checks, and container build/readiness/SPA/API-denial smoke test with 512 MB runtime. The slow local Docker download was deliberately cancelled after hosted verification; it is not a local build pass. No remote TLS/persistence/backup test is claimed. PR #7 is open and unmerged; implementation commit 7fccbab and documentation 214cf81 are recorded facts.
+
+**Interview Questions:**
+
+1. **Why repeatable read for a dashboard?** Several queries see the same snapshot instead of combining totals from different commits.
+2. **Why not sum every inventory quantity?** Products can use different units; a single total could be meaningless.
+3. **Does a public React page expose its protected data?** Assets may be public; authenticated APIs still enforce organization scope and permissions.
+4. **Why use a multi-stage Docker build?** Compile with build tools, then copy only runtime artifacts into the final image.
+5. **Does a passing image build prove deployment?** No; remote configuration, TLS, persistence, readiness, and workflows need actual execution evidence.
+
+**What I Should Practise:** trace one dashboard refresh through session scope and SQL; explain how two commits between queries would affect read committed versus repeatable read. Then identify build-only and runtime-only Docker stages. These are suggested exercises; understanding remains undemonstrated.
