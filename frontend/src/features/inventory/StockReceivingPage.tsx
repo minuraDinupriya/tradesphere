@@ -77,7 +77,7 @@ export function StockReceivingPage() {
           <FormField name="reference" label="Reference" error={errors.reference} hint="Optional delivery slip or internal reference."><input {...field('reference', true)} maxLength={120} value={reference} onChange={event => setReference(event.target.value)} /></FormField>
           <div className="span-two"><FormField name="note" label="Note" error={errors.note}><textarea {...field('note')} maxLength={500} rows={3} value={note} onChange={event => setNote(event.target.value)} /></FormField></div>
         </fieldset>}
-        <p className="field-hint">Only active warehouses/products can receive new stock. Receipts create a read-only movement record; corrections are not available in this release.</p>
+        <p className="field-hint">Only active warehouses and products can receive new stock. Receipts create a read-only record.</p>
       </section>
       {error && <div className="error-panel" role="alert" ref={errorRef} tabIndex={-1}>{error}</div>}
       <div className="form-actions"><Link className="button secondary" to="/inventory/movements" onClick={event => { if (pending) event.preventDefault() }}>View stock movements</Link><button className="button primary" disabled={pending || result.loading || Boolean(result.error)}>{pending ? 'Receiving…' : submitted ? 'Retry same receipt' : 'Receive stock'}</button></div>

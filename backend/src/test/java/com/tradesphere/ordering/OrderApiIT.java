@@ -112,7 +112,7 @@ class OrderApiIT {
     @AfterEach
     void cleanOwnFixtures() {
         removeFailureTrigger();
-        for (var table : new String[]{"order_inventory_movements", "order_state_history", "stock_reservations", "order_items", "orders", "stock_movements", "inventory_balances",
+        for (var table : new String[]{"order_inventory_movements", "order_state_history", "stock_reservations", "order_items", "orders", "stock_adjustments", "stock_movements", "inventory_balances",
                 "warehouses", "products", "customers", "users", "organizations"}) {
             var column = table.equals("organizations") ? "id" : "organization_id";
             jdbc.update("DELETE FROM tradesphere." + table + " WHERE " + column + " IN (?, ?)", organizationId, otherOrganizationId);
@@ -333,6 +333,33 @@ class OrderApiIT {
         assertThat(responses).extracting(HttpResponse::statusCode).containsOnly(200);
         assertBalance(first, 8, 5, 3);
         assertThat(reservationCount()).isEqualTo(1);
+    }
+
+    @Test
+    void downwardAdjustmentAndOrderConfirmationCompeteForTheSameStock() throws Exception {
+        stock(first, 10);
+        var order = create(signedIn(writer), List.of(item(first, 6)));
+        var confirmer = signedIn(writer);
+        var adjuster = signedIn(legacyEditor);
+        var input = Map.of("requestId", UUID.randomUUID(), "warehouseId", warehouse.id(), "productId", first.id(),
+                "expectedOnHand", 10, "countedOnHand", 5, "reason", "Physical count");
+        var responses = concurrent(() -> confirm(confirmer, id(order)),
+                () -> adjuster.send("POST", "/stock-adjustments", input, true));
+        long adjustmentCount = jdbc.queryForObject("SELECT count(*) FROM tradesphere.stock_adjustments WHERE organization_id = ?",
+                Long.class, organizationId);
+        if (responses.get(0).statusCode() == 200) {
+            assertThat(responses.get(1).statusCode()).isEqualTo(409);
+            assertBalance(first, 10, 6, 4);
+            assertThat(reservationCount()).isEqualTo(1);
+            assertThat(adjustmentCount).isZero();
+        } else {
+            assertThat(responses.get(0).statusCode()).isEqualTo(409);
+            assertThat(responses.get(1).statusCode()).isEqualTo(201);
+            assertPending(id(order));
+            assertBalance(first, 5, 0, 5);
+            assertThat(reservationCount()).isZero();
+            assertThat(adjustmentCount).isEqualTo(1);
+        }
     }
 
     @Test

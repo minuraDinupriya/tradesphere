@@ -40,8 +40,16 @@ export function InventoryPage({ history = false }: { history?: boolean }) {
           <caption className="sr-only">{title} in your organization</caption>
           {history ? <><thead><tr><th scope="col">Received</th><th scope="col">Product</th><th scope="col">Warehouse</th><th scope="col">Quantity</th><th scope="col">Reference</th><th scope="col">Recorded by</th><th scope="col">Actions</th></tr></thead>
             <tbody>{(result.data.page.items as StockMovement[]).map(movement => <tr key={movement.id}><td>{new Date(movement.receivedAt).toLocaleString('en-GB')}</td><td><strong>{movement.productName}</strong><span className="cell-detail">{movement.sku}</span></td><td>{movement.warehouseName}</td><td>+{movement.quantity.toLocaleString()} {movement.unitOfMeasure}</td><td>{movement.reference || '—'}</td><td>{movement.receivedByUsername}</td><td><Link className="text-link" to={`/inventory/movements/${movement.id}`} aria-label={`View receipt ${movement.reference || movement.sku}`}>View</Link></td></tr>)}</tbody></>
-            : <><thead><tr><th scope="col">Product</th><th scope="col">Warehouse</th><th scope="col">Unit</th><th scope="col">On-hand</th><th scope="col">Reserved</th><th scope="col">Available</th></tr></thead>
-              <tbody>{(result.data.page.items as InventoryBalance[]).map(balance => <tr key={`${balance.warehouseId}-${balance.productId}`}><td><Link className="product-name" to={`/products/${balance.productId}`}>{balance.productName}</Link><span className="cell-detail">{balance.sku}{balance.productActive ? '' : ' · Inactive product'}</span></td><td><Link to={`/warehouses/${balance.warehouseId}`}>{balance.warehouseName}</Link><span className="cell-detail">{balance.warehouseCode}{balance.warehouseActive ? '' : ' · Inactive warehouse'}</span></td><td>{balance.unitOfMeasure}</td><td>{balance.onHand.toLocaleString()}</td><td>{balance.reserved.toLocaleString()}</td><td className="quantity-available">{balance.available.toLocaleString()}</td></tr>)}</tbody></>}
+            : <><thead><tr><th scope="col">Product</th><th scope="col">Warehouse</th><th scope="col">Unit</th><th scope="col">On-hand</th><th scope="col">Reserved</th><th scope="col">Available</th><th scope="col">Actions</th></tr></thead>
+              <tbody>{(result.data.page.items as InventoryBalance[]).map(balance => {
+                const adjustmentParams = new URLSearchParams({ warehouseId: balance.warehouseId, productId: balance.productId })
+                return <tr key={`${balance.warehouseId}-${balance.productId}`}>
+                  <td><Link className="product-name" to={`/products/${balance.productId}`}>{balance.productName}</Link><span className="cell-detail">{balance.sku}{balance.productActive ? '' : ' · Inactive product'}</span></td>
+                  <td><Link to={`/warehouses/${balance.warehouseId}`}>{balance.warehouseName}</Link><span className="cell-detail">{balance.warehouseCode}{balance.warehouseActive ? '' : ' · Inactive warehouse'}</span></td>
+                  <td>{balance.unitOfMeasure}</td><td>{balance.onHand.toLocaleString()}</td><td>{balance.reserved.toLocaleString()}</td><td className="quantity-available">{balance.available.toLocaleString()}</td>
+                  <td><Link className="text-link" to={`/inventory/adjustments?${adjustmentParams}`} aria-label={`Stock adjustments for ${balance.sku} at ${balance.warehouseName}`}>Adjustments</Link></td>
+                </tr>
+              })}</tbody></>}
         </table></div><InventoryPagination page={result.data.page} onPage={page => apply({ ...filters, page })} /></div>}
   </>
 }

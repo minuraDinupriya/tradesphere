@@ -13,6 +13,12 @@ export interface StockMovement extends Omit<StockReceiptInput, 'note'> {
   receivedBy: string; receivedByUsername: string; receivedAt: string
 }
 export interface InventoryFilters { q: string; warehouseId: string; page: number; size: number }
+export interface StockAdjustmentInput {
+  requestId: string; warehouseId: string; productId: string; expectedOnHand: number; countedOnHand: number; reason: string
+}
+export interface StockAdjustment extends Pick<StockAdjustmentInput, 'warehouseId' | 'productId' | 'countedOnHand' | 'reason'> {
+  id: string; previousOnHand: number; reserved: number; actorUsername: string; occurredAt: string
+}
 
 function params(values: Record<string, string | number | boolean | undefined>) {
   const result = new URLSearchParams()
@@ -30,4 +36,8 @@ export const inventoryApi = {
   balances: (filters: InventoryFilters, signal?: AbortSignal) => request<PageResult<InventoryBalance>>(`/inventory?${params({ ...filters })}`, { signal }),
   movements: (filters: InventoryFilters, signal?: AbortSignal) => request<PageResult<StockMovement>>(`/inventory/movements?${params({ ...filters })}`, { signal }),
   receive: (input: StockReceiptInput) => request<{ movement: StockMovement; replayed: boolean }>('/inventory/receipts', { method: 'POST', body: JSON.stringify(input) }),
+  adjustments: (warehouseId: string, productId: string, page: number, signal?: AbortSignal) =>
+    request<{ balance: InventoryBalance; history: PageResult<StockAdjustment> }>(`/stock-adjustments?${params({ warehouseId, productId, page, size: 25 })}`, { signal }),
+  adjust: (input: StockAdjustmentInput) =>
+    request<{ adjustment: StockAdjustment; replayed: boolean }>('/stock-adjustments', { method: 'POST', body: JSON.stringify(input) }),
 }

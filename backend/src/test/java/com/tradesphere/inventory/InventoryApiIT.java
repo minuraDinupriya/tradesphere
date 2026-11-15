@@ -72,7 +72,7 @@ class InventoryApiIT {
 
     @AfterEach
     void cleanOwnFixtures() {
-        for (var table : new String[]{"stock_movements", "inventory_balances", "warehouses", "products", "users", "organizations"}) {
+        for (var table : new String[]{"stock_adjustments", "stock_movements", "inventory_balances", "warehouses", "products", "users", "organizations"}) {
             var column = table.equals("organizations") ? "id" : "organization_id";
             jdbc.update("DELETE FROM tradesphere." + table + " WHERE " + column + " IN (?, ?)", organizationId, otherOrganizationId);
         }
@@ -216,6 +216,104 @@ class InventoryApiIT {
         concurrent(request, request);
         assertThat(inventory.balances(organizationId, "", null, null, 0, 20).items().get(0).onHand()).isEqualTo(7);
         assertThat(inventory.movements(organizationId, "", null, null, 0, 20).totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void adjustmentsReconcileExistingBalanceAndKeepSeparateHistory() throws Exception {
+        inventory.receive(organizationId, actorId, request(UUID.randomUUID(), 10));
+        jdbc.update("UPDATE tradesphere.inventory_balances SET reserved = 4 WHERE organization_id = ?", organizationId);
+        var client = signedIn(writer);
+        var requestId = UUID.randomUUID();
+        var first = client.send("POST", "/stock-adjustments", adjustment(requestId, 10, 4, " Counted shelf stock "), true);
+        assertThat(first.statusCode()).isEqualTo(201);
+        var record = json(first).path("adjustment");
+        assertThat(record.path("previousOnHand").asLong()).isEqualTo(10);
+        assertThat(record.path("countedOnHand").asLong()).isEqualTo(4);
+        assertThat(record.path("reserved").asLong()).isEqualTo(4);
+        assertThat(record.path("reason").asString()).isEqualTo("Counted shelf stock");
+        assertThat(record.path("actorUsername").asString()).isEqualTo(writer);
+        assertThat(record.path("occurredAt").asString()).isNotBlank();
+        assertThat(adjustments(client).path("balance").path("available").asLong()).isZero();
+
+        assertThat(client.send("POST", "/stock-adjustments", adjustment(UUID.randomUUID(), 4, 6, "Recount"), true).statusCode()).isEqualTo(201);
+        var replay = client.send("POST", "/stock-adjustments", adjustment(requestId, 10, 4, "Counted shelf stock"), true);
+        assertThat(replay.statusCode()).isEqualTo(200);
+        assertThat(json(replay).path("replayed").asBoolean()).isTrue();
+        assertThat(json(replay).path("adjustment")).isEqualTo(record);
+        assertThat(client.send("POST", "/stock-adjustments", adjustment(requestId, 10, 4, "Different reason"), true).statusCode()).isEqualTo(409);
+        var result = adjustments(signedIn(viewer));
+        assertThat(result.path("balance").path("onHand").asLong()).isEqualTo(6);
+        assertThat(result.path("balance").path("reserved").asLong()).isEqualTo(4);
+        assertThat(result.path("history").path("totalElements").asLong()).isEqualTo(2);
+        assertThat(result.path("history").path("items").get(0).path("reason").asString()).isEqualTo("Recount");
+        assertThat(inventory.movements(organizationId, "", null, null, 0, 20).totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void adjustmentsRejectInvalidStaleAndUnauthorizedCountsWithoutChangingStock() throws Exception {
+        var client = signedIn(writer);
+        var valid = adjustment(UUID.randomUUID(), 10, 7, "Count");
+        assertThat(client.send("POST", "/stock-adjustments", valid, true).statusCode()).isEqualTo(404);
+        inventory.receive(organizationId, actorId, request(UUID.randomUUID(), 10));
+        jdbc.update("UPDATE tradesphere.inventory_balances SET reserved = 4 WHERE organization_id = ?", organizationId);
+        for (var counted : new Object[]{-1, 4.5, StockReceiptRequest.MAX_QUANTITY + 1, 10}) {
+            assertThat(client.send("POST", "/stock-adjustments", adjustment(UUID.randomUUID(), 10, counted, "Count"), true).statusCode()).isEqualTo(400);
+        }
+        for (var reason : new String[]{" ", "x".repeat(501)}) {
+            assertThat(client.send("POST", "/stock-adjustments", adjustment(UUID.randomUUID(), 10, 7, reason), true).statusCode()).isEqualTo(400);
+        }
+        assertThat(client.send("POST", "/stock-adjustments", adjustment(UUID.randomUUID(), 10, 3, "Count"), true).statusCode()).isEqualTo(409);
+        assertThat(client.send("POST", "/stock-adjustments", adjustment(UUID.randomUUID(), 9, 7, "Stale count"), true).statusCode()).isEqualTo(409);
+        assertThat(client.send("POST", "/stock-adjustments", valid, false).statusCode()).isEqualTo(403);
+        assertThat(signedIn(viewer).send("POST", "/stock-adjustments", valid, true).statusCode()).isEqualTo(403);
+        var other = signedIn(outsider);
+        assertThat(other.send("POST", "/stock-adjustments", valid, true).statusCode()).isEqualTo(404);
+        assertThat(other.send("GET", adjustmentsPath(), null, false).statusCode()).isEqualTo(404);
+        assertThat(new ApiClient().send("GET", adjustmentsPath(), null, false).statusCode()).isEqualTo(401);
+        warehouses.update(organizationId, warehouse.id(), new WarehouseValues("WH-1", "Main test warehouse", null, false), 0);
+        assertThat(client.send("POST", "/stock-adjustments", valid, true).statusCode()).isEqualTo(409);
+        var result = adjustments(client);
+        assertThat(result.path("balance").path("onHand").asLong()).isEqualTo(10);
+        assertThat(result.path("history").path("totalElements").asLong()).isZero();
+    }
+
+    @Test
+    void concurrentAdjustmentRetriesHaveOneRecordedEffect() throws Exception {
+        inventory.receive(organizationId, actorId, request(UUID.randomUUID(), 10));
+        var first = signedIn(writer);
+        var second = signedIn(writer);
+        var input = adjustment(UUID.randomUUID(), 10, 7, "Recount");
+        var start = new CountDownLatch(1);
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var left = executor.submit(() -> {
+                assertThat(start.await(5, TimeUnit.SECONDS)).isTrue();
+                return first.send("POST", "/stock-adjustments", input, true).statusCode();
+            });
+            var right = executor.submit(() -> {
+                assertThat(start.await(5, TimeUnit.SECONDS)).isTrue();
+                return second.send("POST", "/stock-adjustments", input, true).statusCode();
+            });
+            start.countDown();
+            assertThat(java.util.List.of(left.get(15, TimeUnit.SECONDS), right.get(15, TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder(201, 200);
+        }
+        assertThat(adjustments(first).path("history").path("totalElements").asLong()).isEqualTo(1);
+        assertThat(adjustments(first).path("balance").path("onHand").asLong()).isEqualTo(7);
+    }
+
+    private Map<String, Object> adjustment(UUID requestId, long expected, Object count, String reason) {
+        return Map.of("requestId", requestId, "warehouseId", warehouse.id(), "productId", product.id(),
+                "expectedOnHand", expected, "countedOnHand", count, "reason", reason);
+    }
+
+    private String adjustmentsPath() {
+        return "/stock-adjustments?warehouseId=" + warehouse.id() + "&productId=" + product.id();
+    }
+
+    private JsonNode adjustments(ApiClient client) throws Exception {
+        var response = client.send("GET", adjustmentsPath(), null, false);
+        assertThat(response.statusCode()).isEqualTo(200);
+        return json(response);
     }
 
     private void concurrent(StockReceiptRequest first, StockReceiptRequest second) throws Exception {
