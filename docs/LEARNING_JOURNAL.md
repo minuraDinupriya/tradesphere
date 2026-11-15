@@ -397,3 +397,13 @@ Local verification so far: Maven `verify` passed **16 unit + 69 PostgreSQL/API t
 5. **Does a passing image build prove deployment?** No; remote configuration, TLS, persistence, readiness, and workflows need actual execution evidence.
 
 **What I Should Practise:** trace one dashboard refresh through session scope and SQL; explain how two commits between queries would affect read committed versus repeatable read. Then identify build-only and runtime-only Docker stages. These are suggested exercises; understanding remains undemonstrated.
+
+## 2026-11-15 — TRD-20: Counted stock adjustments
+
+[TRD-20](https://minuraranaweera.atlassian.net/browse/TRD-20) starts from merged TRD-19 (`b772a09`) on `feature/TRD-20-stock-adjustments`.
+
+Inventory writers can enter a physical count and reason from an existing balance. `StockAdjustmentService` locks that balance, compares the expected quantity, protects the reserved floor, and saves the correction and history together. The unique request key lets a retry return the prior result. See [decision 0008](decisions/0008-stock-adjustments.md) for the stale-count tradeoff and [command log](COMMAND_LOG.md) for verification.
+
+**What I should practise:** Trace a count of five when six units are being reserved concurrently. Which transaction can succeed first, and what does the other see? Why would checking reserved stock before acquiring the lock be unsafe? What would an adjustment retry do if its first response were lost?
+
+**Verification:** 16 unit and 73 PostgreSQL integration tests, 66 frontend tests, six Edge workflows, frontend lint/build, and local documentation checks passed. The browser test recorded a count of 22 from 25 and returned to Inventory to confirm the balance. See [browser evidence](evidence/TRD-20/README.md).
