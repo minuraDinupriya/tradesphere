@@ -12,6 +12,7 @@ import { WarehouseFormPage } from './features/inventory/WarehouseFormPage'
 import { WarehouseDetailsPage } from './features/inventory/WarehouseDetailsPage'
 import { InventoryPage } from './features/inventory/InventoryPage'
 import { StockReceivingPage } from './features/inventory/StockReceivingPage'
+import { StockAdjustmentsPage } from './features/inventory/StockAdjustmentsPage'
 import { MovementDetailsPage } from './features/inventory/MovementDetailsPage'
 import { CustomerListPage } from './features/customers/CustomerListPage'
 import { CustomerFormPage } from './features/customers/CustomerFormPage'
@@ -50,6 +51,7 @@ function App() {
       <Route path="warehouses/:id" element={<WarehouseDetailsPage key={location.pathname} />} />
       <Route path="inventory" element={<InventoryPage key={location.pathname + location.search} />} />
       <Route path="inventory/receive" element={<StockReceivingPage key={location.pathname + location.search} />} />
+      <Route path="inventory/adjustments" element={<StockAdjustmentsPage key={location.search} />} />
       <Route path="inventory/movements" element={<InventoryPage history key={location.pathname + location.search} />} />
       <Route path="inventory/movements/:id" element={<MovementDetailsPage key={location.pathname} />} />
       <Route path="*" element={<section className="state-panel"><h1>Page not found</h1>

@@ -8,15 +8,18 @@ import type { AuthState } from '../identity/useAuth'
 import { productApi } from '../catalog/productApi'
 import { ApiError } from '../../shared/api/http'
 import { inventoryApi } from './inventoryApi'
-import type { InventoryBalance, StockMovement, Warehouse } from './inventoryApi'
+import type { InventoryBalance, StockAdjustment, StockMovement, Warehouse } from './inventoryApi'
 
-vi.mock('./inventoryApi', () => ({ inventoryApi: { warehouses: vi.fn(), warehouse: vi.fn(), createWarehouse: vi.fn(), updateWarehouse: vi.fn(), balances: vi.fn(), movements: vi.fn(), receive: vi.fn() } }))
+vi.mock('./inventoryApi', () => ({ inventoryApi: { warehouses: vi.fn(), warehouse: vi.fn(), createWarehouse: vi.fn(), updateWarehouse: vi.fn(), balances: vi.fn(), movements: vi.fn(), receive: vi.fn(), adjustments: vi.fn(), adjust: vi.fn() } }))
 vi.mock('../catalog/productApi', () => ({ productApi: { list: vi.fn(), categories: vi.fn(), get: vi.fn() } }))
 
 const warehouse: Warehouse = { id: '11111111-1111-4111-8111-111111111111', code: 'COL-01', name: 'Colombo test warehouse', location: 'Fictional location', active: true, version: 0, createdAt: '2026-11-06T12:00:00Z', updatedAt: '2026-11-06T12:00:00Z' }
 const product = { id: '22222222-2222-4222-8222-222222222222', name: 'Packing tape', sku: 'TAPE-01', description: null, category: 'Packaging', unitOfMeasure: 'Each', active: true, version: 0, createdAt: warehouse.createdAt, updatedAt: warehouse.updatedAt, sellingPrice: null }
 const balance: InventoryBalance = { warehouseId: warehouse.id, warehouseCode: warehouse.code, warehouseName: warehouse.name, productId: product.id, productName: product.name, sku: product.sku, unitOfMeasure: 'Each', onHand: 25, reserved: 6, available: 19, warehouseActive: true, productActive: true, updatedAt: warehouse.updatedAt }
 const movement: StockMovement = { id: '33333333-3333-4333-8333-333333333333', requestId: '44444444-4444-4444-8444-444444444444', warehouseId: warehouse.id, warehouseCode: warehouse.code, warehouseName: warehouse.name, productId: product.id, productName: product.name, sku: product.sku, unitOfMeasure: 'Each', quantity: 25, reference: 'DEL-15', note: null, receivedBy: 'test-user-id', receivedByUsername: 'test-operator', receivedAt: warehouse.createdAt }
+const adjustment: StockAdjustment = { id: '55555555-5555-4555-8555-555555555555', warehouseId: warehouse.id, productId: product.id, previousOnHand: 25, countedOnHand: 22, reserved: 6, reason: 'Three damaged units found during count', actorUsername: 'count-operator', occurredAt: warehouse.updatedAt }
+const adjustmentPath = `/inventory/adjustments?warehouseId=${warehouse.id}&productId=${product.id}`
+const adjustmentHistory = { items: [], page: 0, size: 25, totalElements: 0, totalPages: 0 }
 const auth: AuthState = { user: { username: 'test-operator', organizationName: 'Fictional Organization', canWriteCatalog: false, canWriteInventory: true, canWriteCustomers: false, canWritePrices: false, canWriteOrders: false }, loading: false, error: null, refresh: vi.fn(), signIn: vi.fn(), signOut: vi.fn() }
 function page<T>(item: T) { return { items: [item], page: 0, size: 20, totalElements: 1, totalPages: 1 } }
 function open(path: string, state = auth) { return render(<AuthContext.Provider value={state}><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></AuthContext.Provider>) }
@@ -30,6 +33,8 @@ beforeEach(() => {
   vi.mocked(inventoryApi.balances).mockResolvedValue(page(balance))
   vi.mocked(inventoryApi.movements).mockResolvedValue(page(movement))
   vi.mocked(inventoryApi.receive).mockResolvedValue({ movement, replayed: false })
+  vi.mocked(inventoryApi.adjustments).mockResolvedValue({ balance, history: adjustmentHistory })
+  vi.mocked(inventoryApi.adjust).mockResolvedValue({ adjustment, replayed: false })
   vi.mocked(productApi.list).mockResolvedValue(page(product))
 })
 
@@ -147,5 +152,78 @@ describe('warehouse and inventory interactions', () => {
     expect(await screen.findByRole('cell', { name: 'DEL-15' })).toBeInTheDocument()
     expect(screen.getByRole('cell', { name: 'test-operator' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'View receipt DEL-15' })).toBeInTheDocument()
+  })
+
+  it('records the physical count from an inventory row and shows the updated history', async () => {
+    vi.mocked(inventoryApi.adjustments).mockResolvedValueOnce({ balance, history: adjustmentHistory })
+      .mockResolvedValue({ balance: { ...balance, onHand: 22, available: 16 }, history: page(adjustment) })
+    const user = userEvent.setup()
+    open('/inventory')
+    await user.click(await screen.findByRole('link', { name: `Stock adjustments for ${balance.sku} at ${balance.warehouseName}` }))
+    await user.type(await screen.findByLabelText(/^Counted on-hand/), '22')
+    await user.type(screen.getByLabelText(/^Reason/), `  ${adjustment.reason}  `)
+    await user.click(screen.getByRole('button', { name: 'Record adjustment' }))
+    expect(await screen.findByText('Stock adjustment recorded.')).toBeInTheDocument()
+    expect(await screen.findByRole('cell', { name: adjustment.reason })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: adjustment.actorUsername })).toBeInTheDocument()
+    expect(screen.getByText('22 Each')).toBeInTheDocument()
+    expect(inventoryApi.adjust).toHaveBeenCalledWith({
+      warehouseId: warehouse.id, productId: product.id, expectedOnHand: 25, countedOnHand: 22,
+      reason: adjustment.reason, requestId: expect.any(String),
+    })
+  })
+
+  it('rejects counts below reserved stock and blank reasons before submission', async () => {
+    const user = userEvent.setup()
+    open(adjustmentPath)
+    await user.type(await screen.findByLabelText(/^Counted on-hand/), '5')
+    await user.type(screen.getByLabelText(/^Reason/), ' ')
+    await user.click(screen.getByRole('button', { name: 'Record adjustment' }))
+    expect(screen.getByText('The count cannot be below the reserved quantity.')).toBeInTheDocument()
+    expect(screen.getByText('Enter a reason for this adjustment.')).toBeInTheDocument()
+    expect(inventoryApi.adjust).not.toHaveBeenCalled()
+  })
+
+  it('reloads a conflicting balance and requires a new count before submitting again', async () => {
+    vi.mocked(inventoryApi.adjust).mockRejectedValueOnce(new ApiError({ status: 409, title: 'Balance changed', detail: 'On-hand stock changed.' }))
+    vi.mocked(inventoryApi.adjustments).mockResolvedValueOnce({ balance, history: adjustmentHistory })
+      .mockResolvedValue({ balance: { ...balance, onHand: 27, available: 21 }, history: adjustmentHistory })
+    const user = userEvent.setup()
+    open(adjustmentPath)
+    await user.type(await screen.findByLabelText(/^Counted on-hand/), '22')
+    await user.type(screen.getByLabelText(/^Reason/), adjustment.reason)
+    await user.click(screen.getByRole('button', { name: 'Record adjustment' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Review the latest balance')
+    expect(await screen.findByText('27 Each')).toBeInTheDocument()
+    expect(screen.getByLabelText(/^Counted on-hand/)).toHaveValue(null)
+  })
+
+  it('retries an uncertain adjustment with the same request even after a later rejection', async () => {
+    vi.mocked(inventoryApi.adjust).mockRejectedValueOnce(new Error('Response lost'))
+      .mockRejectedValueOnce(new ApiError({ status: 403, title: 'Access denied', detail: 'Security token expired.' }))
+      .mockResolvedValue({ adjustment, replayed: true })
+    const user = userEvent.setup()
+    open(adjustmentPath)
+    await user.type(await screen.findByLabelText(/^Counted on-hand/), '22')
+    await user.type(screen.getByLabelText(/^Reason/), adjustment.reason)
+    await user.click(screen.getByRole('button', { name: 'Record adjustment' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not confirm')
+    expect(screen.getByLabelText(/^Counted on-hand/)).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Retry same adjustment' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Security token expired')
+    expect(screen.getByLabelText(/^Reason/)).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Retry same adjustment' }))
+    expect(await screen.findByText('This stock adjustment was already recorded.')).toBeInTheDocument()
+    const requests = vi.mocked(inventoryApi.adjust).mock.calls.map(([input]) => input)
+    expect(requests).toHaveLength(3)
+    expect(requests[1]).toEqual(requests[0])
+    expect(requests[2]).toEqual(requests[0])
+  })
+
+  it('shows adjustment history without mutation controls to an inventory reader', async () => {
+    vi.mocked(inventoryApi.adjustments).mockResolvedValue({ balance, history: page(adjustment) })
+    open(adjustmentPath, { ...auth, user: { ...auth.user!, canWriteInventory: false } })
+    expect(await screen.findByRole('cell', { name: adjustment.reason })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Record adjustment' })).not.toBeInTheDocument()
   })
 })

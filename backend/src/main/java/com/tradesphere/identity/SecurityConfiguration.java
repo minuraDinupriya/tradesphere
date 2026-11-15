@@ -32,8 +32,9 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/**").hasAuthority("catalog:read")
                         .requestMatchers(HttpMethod.POST, "/api/v1/products").hasAuthority("catalog:write")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/products/*").hasAuthority("catalog:write")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/warehouses", "/api/v1/warehouses/**", "/api/v1/inventory", "/api/v1/inventory/**").hasAuthority("inventory:read")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/warehouses", "/api/v1/inventory/receipts").hasAuthority("inventory:write")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/warehouses", "/api/v1/warehouses/**", "/api/v1/inventory", "/api/v1/inventory/**",
+                                "/api/v1/stock-adjustments").hasAuthority("inventory:read")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/warehouses", "/api/v1/inventory/receipts", "/api/v1/stock-adjustments").hasAuthority("inventory:write")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/warehouses/*").hasAuthority("inventory:write")
                         .requestMatchers(HttpMethod.GET, "/api/v1/orders", "/api/v1/orders/**").hasAuthority("orders:read")
                         .requestMatchers(HttpMethod.POST, "/api/v1/orders", "/api/v1/orders/*/confirm", "/api/v1/orders/*/process", "/api/v1/orders/*/cancel", "/api/v1/orders/*/fulfill").hasAuthority("orders:write")

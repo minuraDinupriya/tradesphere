@@ -54,11 +54,22 @@ Balances contain warehouse/product IDs and current labels/status, `onHand`, `res
 
 Movements contain `id`, `requestId`, warehouse/product IDs and current labels/unit, positive `quantity`, `reference`, `note`, `receivedBy` (user ID), `receivedByUsername`, and `receivedAt`. Application endpoints only append/read receipts. Labels reflect current master records; this is not a historical label snapshot or a tamper-proof database audit system.
 
+## Stock adjustments (TRD-20)
+
+From **Inventory**, open **Adjustments** on a balance row. Organization readers can view its history. Inventory writers can reconcile that balance while its warehouse and product are active.
+
+- `GET /api/v1/stock-adjustments?warehouseId={uuid}&productId={uuid}&page=0&size=25` returns `{balance, history}`. Both IDs are required. History uses the same pagination envelope as balances, newest first. An absent or foreign balance returns 404.
+- `POST /api/v1/stock-adjustments` takes `warehouseId`, `productId`, `requestId`, `expectedOnHand` (the displayed count), `countedOnHand` (the physical count), and a nonblank `reason` of at most 500 characters. Counts are whole units in the range 0–9,007,199,254,740,991. An unchanged count returns 400.
+- A committed adjustment returns 201 with `{adjustment, replayed: false}`. Reuse the same organization-scoped request UUID and normalized payload to replay the original adjustment with 200. Reusing the UUID for different input returns 409.
+- A stale displayed count, a count below current reservations, or inactive records return 409. A count equal to current reservations is valid and leaves zero available. The adjustment changes on-hand and available stock. Reservations and receipt history keep their own records.
+
+History records the previous and corrected counts, reserved stock at the adjustment, reason, actor, and time. The actor comes from the session. The server checks the current balance under a row lock and commits the history and balance together. After a lost response, retry the same submission. If you leave the page, inspect history before entering a new count.
+
 ## Errors and limits
 
 Errors use `application/problem+json` with `status`, `title`, `detail`, and field `errors` when applicable, consistent with the catalog. Common statuses: 400 validation/type errors; 401 no session; 403 missing permission/CSRF; 404 absent/foreign record; 409 duplicate code/stale version/inactive eligibility/request mismatch/overflow; 500 unexpected server failure. Internal traces are not returned.
 
-No order reservations, fulfillment, stock corrections, transfers, procurement, multi-line deliveries, or movement edits/deletion. Warehouse selectors fetch up to 100 records (the fictional scenario has three); product selection searches up to 20 active matches with an instruction to refine search. Production-scale lookup UX is not claimed.
+Transfers, procurement, multi-line deliveries, and movement edits or deletion are outside this API. Warehouse selectors fetch up to 100 records (the fictional scenario has three). Product selection searches up to 20 active matches with an instruction to refine search.
 
 ## Permission provisioning
 

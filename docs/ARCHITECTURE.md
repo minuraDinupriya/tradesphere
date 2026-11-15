@@ -50,6 +50,10 @@ V5 adds customers, selling-price/price-version columns, and default-false permis
 
 Balances enforce nonnegative on-hand/reserved and `reserved <= on_hand`; `available` is generated as their difference. Whole-unit values are limited to JavaScript's exact integer range. Inventory's read projections join current catalog/user labels with organization predicates; this deliberate read-only coupling is recorded in [decision 0003](decisions/0003-warehouse-inventory.md). Inventory does not mutate those modules' data. Movement identifiers/quantity/actor/time are persisted, but current labels are not historical snapshots and the database is not a tamper-proof audit store.
 
+## Stock adjustments
+
+Inventory also owns stock adjustments for recorded balances. A physical count is checked against the current on-hand and reserved quantities under a row lock. The balance and separate adjustment ledger commit together. See [decision 0008](decisions/0008-stock-adjustments.md).
+
 ## Implemented order confirmation
 
 TRD-17's `OrderService` owns the order transaction and price/label snapshots; `CatalogProductAccess` and `InventoryOrderAccess` expose explicit operations requiring that transaction. V6 adds pending/confirmed headers/items, a separate reservation ledger, default-false order permission, and composite tenant references. Creation uses an organization/request unique key and canonical payload comparison. Confirmation locks the tenant-scoped order row, returns a confirmed replay immediately, then acquires warehouse/customer and all sorted product eligibility locks before any sorted balance writes.

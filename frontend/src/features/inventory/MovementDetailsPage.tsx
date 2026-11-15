@@ -18,5 +18,5 @@ export function MovementDetailsPage() {
       <div><dt>Quantity received</dt><dd>+{data.quantity.toLocaleString()} {data.unitOfMeasure}</dd></div><div><dt>Recorded by</dt><dd>{data.receivedByUsername}</dd></div>
       <div><dt>Received at</dt><dd>{new Date(data.receivedAt).toLocaleString('en-GB')}</dd></div><div><dt>Reference</dt><dd>{data.reference || 'Not provided'}</dd></div>
       <div className="span-two"><dt>Note</dt><dd className="preserve-lines">{data.note || 'No note provided.'}</dd></div><div><dt>Receipt ID</dt><dd>{data.id}</dd></div><div><dt>Request ID</dt><dd>{data.requestId}</dd></div>
-    </dl></section><p className="muted small">History is read-only. Stock corrections and order movements are outside this release.</p></>
+    </dl></section><p className="muted small">Receipt history is read-only.</p></>
 }
