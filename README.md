@@ -2,7 +2,7 @@
 
 TradeSphere is a B2B commerce and supply-chain management portfolio project for **Lanka Distribution Group**, a fictional Sri Lankan distributor operating three warehouses.
 
-The system will manage products, warehouses, stock receipts, inventory availability, customers, and orders. It is a solo flagship software engineering portfolio project, with an emphasis on learning, explainable engineering decisions, and preparation for Sri Lankan software engineering internship interviews beginning in **January 2027**.
+The system will manage products, warehouses, stock receipts, inventory availability, customers, and orders. It is a solo software engineering portfolio project, with an emphasis on learning, explainable engineering decisions, and preparation for Sri Lankan software engineering internship interviews beginning in **January 2027**.
 
 ## Current status
 
