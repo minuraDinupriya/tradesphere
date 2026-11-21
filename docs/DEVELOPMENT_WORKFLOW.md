@@ -19,7 +19,7 @@ For planned feature deliverables, agree on the outcome and arrange a real Jira k
 7. Open a pull request using the title conventions and template below, linking the Jira deliverable when applicable. Describe the problem, resulting behavior, key decisions, executed validation, and remaining limitations.
 8. Perform an honest review, address findings, and follow the agreed merge process. Do not invent a reviewer or approval for a solo project.
 
-Current authorization covers TRD-19 dashboard, focused MVP usability/security review, full regression tests, and local container/release preparation, based on merged TRD-18 (a31044b). Preserve the separately stashed mentoring draft. Spending, provisioning, public deployment, release/tag publication, and merge require explicit developer approval. See [deployment proposal](DEPLOYMENT.md) for researched costs and pending verification. Teach interactively after implementation and keep implementation, verified tests, and demonstrated understanding separate.
+Current deliverable: TRD-20 counted stock adjustments is implemented on `feature/TRD-20-stock-adjustments`, with PR #8 as its review path. Preserve the separately stashed mentoring draft and keep follow-up within TRD-20. Merge requires explicit developer approval. Spending, provisioning, public deployment, and release/tag publication are not authorized; the developer chose local deployment. Teach interactively after implementation and keep implementation, verified tests, and demonstrated understanding separate. Update this scope after the owner selects the next deliverable.
 
 ## File and code naming
 
