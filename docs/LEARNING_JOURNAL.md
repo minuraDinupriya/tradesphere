@@ -407,3 +407,5 @@ Inventory writers can enter a physical count and reason from an existing balance
 **What I should practise:** Trace a count of five when six units are being reserved concurrently. Which transaction can succeed first, and what does the other see? Why would checking reserved stock before acquiring the lock be unsafe? What would an adjustment retry do if its first response were lost?
 
 **Verification:** 16 unit and 73 PostgreSQL integration tests, 66 frontend tests, six Edge workflows, frontend lint/build, and local documentation checks passed. The browser test recorded a count of 22 from 25 and returned to Inventory to confirm the balance. See [browser evidence](evidence/TRD-20/README.md).
+
+**2026-11-21 update:** PR [#8](https://github.com/minuraDinupriya/tradesphere/pull/8) was found for this branch. GitHub Actions run [43661993468](https://github.com/minuraDinupriya/tradesphere/actions/runs/43661993468) completed successfully on documentation commit `4375bcc`. No additional feature tests were run for this documentation-only status update; review/merge status remains separate from CI and requires the owner's approval.

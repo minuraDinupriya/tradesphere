@@ -144,3 +144,6 @@ Expected injected SQL exceptions are evidence within passing rollback tests; the
 - **Frontend:** `npm run lint` and `npm run build` passed. `npm run test` initially missed required field labels in four new tests. Updated the selectors and reran successfully with 66 passing tests.
 - **Frontend:** `npm run test:e2e` initially tried to start a jar while Maven was still packaging it. After packaging completed, the isolated Edge run passed all six workflows. The inventory journey captured the adjusted balance and history.
 - **Root:** `pwsh -File scripts/check-doc-links.ps1` and `git diff --check` verified local Markdown links and whitespace. Code and tests were committed as `990fa43`.
+
+- **Root:** GitHub Actions run `43661993468` was inspected for commit `4375bcc` and completed successfully on PR #8. This records hosted verification for the current documentation head; it does not imply approval or merge. `gh pr list` was attempted but unavailable because GitHub CLI (`gh`) is not installed; the connected GitHub integration supplied PR and workflow evidence instead.
+- **Root:** `pwsh -File scripts/check-doc-links.ps1` and `git diff --check` — rerun for this documentation-only scope correction and status record; see this commit's command report for results.
